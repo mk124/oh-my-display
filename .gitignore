@@ -9,6 +9,7 @@ Package.resolved
 *.xcodeproj
 xcuserdata/
 DerivedData/
+.vscode/
 
 # Claude Code worktree isolation
 .claude/worktrees/
