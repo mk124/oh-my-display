@@ -9,6 +9,10 @@ let package = Package(
   ],
   products: [
     .library(name: "OMDCore", targets: ["OMDCore"]),
+    .executable(name: "omd", targets: ["omd"]),
+  ],
+  dependencies: [
+    .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.8.0")
   ],
   targets: [
     .target(
@@ -28,9 +32,26 @@ let package = Package(
         .linkedFramework("IOKit"),
       ]
     ),
+    .target(
+      name: "OMDCLI",
+      dependencies: [
+        "OMDCore",
+        .product(name: "ArgumentParser", package: "swift-argument-parser"),
+      ]
+    ),
+    .executableTarget(
+      name: "omd",
+      dependencies: [
+        "OMDCLI"
+      ]
+    ),
     .testTarget(
       name: "OMDCoreTests",
       dependencies: ["OMDCore", "OMDQuartzBridge"]
+    ),
+    .testTarget(
+      name: "OMDCLITests",
+      dependencies: ["OMDCLI"]
     ),
   ]
 )

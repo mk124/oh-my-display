@@ -1,0 +1,3 @@
+import OMDCLI
+
+OMDCommand.main()
