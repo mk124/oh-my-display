@@ -74,6 +74,8 @@ struct DisplayStateReader: Sendable {
       hdrMode: displayMode.map {
         privateEnumAxis($0.hdrMode, unknown: .unknown, source: "CADisplay HDR mode")
       } ?? .unreadable(source: "CADisplay HDR unavailable"),
+      isVRR: displayMode.map { .readable($0.isVRR, source: "CADisplay VRR") }
+        ?? .unreadable(source: "CADisplay VRR unavailable"),
       ditheringEnabled: ditheringService.readDithering(resolved),
       iccProfileURL: iccProfileService.readICCProfile(resolved)
     )

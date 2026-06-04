@@ -106,6 +106,7 @@ public struct DisplayListResult<Item: Codable & Equatable & Sendable>: Codable, 
 }
 
 public enum DisplayEncoding: String, Codable, Sendable {
+  case none
   case rgb
   case ycbcr
   case unknown
@@ -118,6 +119,7 @@ public enum DisplayRange: String, Codable, Sendable {
 }
 
 public enum DisplayChroma: String, Codable, Sendable {
+  case none
   case c444 = "444"
   case c422 = "422"
   case c420 = "420"
@@ -127,6 +129,8 @@ public enum DisplayChroma: String, Codable, Sendable {
 public enum DisplayHDRMode: String, Codable, Sendable {
   case sdr
   case hdr10
+  case dolbyVision = "dolby-vision"
+  case dolbyVisionLowLatency = "dolby-vision-low-latency"
   case unknown
 }
 
@@ -186,6 +190,9 @@ public struct DisplayMode: Codable, Equatable, Sendable {
   public var range: DisplayRange
   public var chroma: DisplayChroma
   public var hdrMode: DisplayHDRMode
+  public var hdrModeRaw: String?
+  public var colorModeRaw: String?
+  public var modeDescription: String?
   public var isVirtual: Bool
   public var isVRR: Bool
   public var isHighBandwidth: Bool
@@ -199,6 +206,9 @@ public struct DisplayMode: Codable, Equatable, Sendable {
     range: DisplayRange = .unknown,
     chroma: DisplayChroma = .unknown,
     hdrMode: DisplayHDRMode = .unknown,
+    hdrModeRaw: String? = nil,
+    colorModeRaw: String? = nil,
+    modeDescription: String? = nil,
     isVirtual: Bool = false,
     isVRR: Bool = false,
     isHighBandwidth: Bool = false
@@ -211,6 +221,9 @@ public struct DisplayMode: Codable, Equatable, Sendable {
     self.range = range
     self.chroma = chroma
     self.hdrMode = hdrMode
+    self.hdrModeRaw = hdrModeRaw
+    self.colorModeRaw = colorModeRaw
+    self.modeDescription = modeDescription
     self.isVirtual = isVirtual
     self.isVRR = isVRR
     self.isHighBandwidth = isHighBandwidth

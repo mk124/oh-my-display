@@ -15,6 +15,13 @@ enum HiDPIArgument: String, Sendable {
   var boolValue: Bool { self == .on }
 }
 
+enum VRRArgument: String, Sendable {
+  case on
+  case off
+
+  var boolValue: Bool { self == .on }
+}
+
 enum EncodingArgument: String, Sendable {
   case rgb
   case ycbcr
@@ -56,11 +63,15 @@ enum ChromaArgument: String, Sendable {
 enum HDRArgument: String, Sendable {
   case sdr
   case hdr10
+  case dolbyVision = "dolby-vision"
+  case dolbyVisionLowLatency = "dolby-vision-low-latency"
 
   var coreValue: DisplayHDRMode {
     switch self {
     case .sdr: .sdr
     case .hdr10: .hdr10
+    case .dolbyVision: .dolbyVision
+    case .dolbyVisionLowLatency: .dolbyVisionLowLatency
     }
   }
 }
@@ -77,6 +88,7 @@ struct DisplaySetOptions: Sendable {
   var range: RangeArgument?
   var chroma: ChromaArgument?
   var hdr: HDRArgument?
+  var vrr: VRRArgument?
   var dithering: DitheringArgument?
   var icc: URL?
   var json: Bool
@@ -94,6 +106,7 @@ struct DisplaySetOptions: Sendable {
     range: RangeArgument? = nil,
     chroma: ChromaArgument? = nil,
     hdr: HDRArgument? = nil,
+    vrr: VRRArgument? = nil,
     dithering: DitheringArgument? = nil,
     icc: URL? = nil,
     json: Bool = false,
@@ -110,6 +123,7 @@ struct DisplaySetOptions: Sendable {
     self.range = range
     self.chroma = chroma
     self.hdr = hdr
+    self.vrr = vrr
     self.dithering = dithering
     self.icc = icc
     self.json = json
@@ -352,6 +366,7 @@ struct DisplayCommands: Sendable {
       || options.range != nil
       || options.chroma != nil
       || options.hdr != nil
+      || options.vrr != nil
   }
 
   private func selectorForMutation(_ input: String) throws -> DisplaySelector {
@@ -421,6 +436,7 @@ struct DisplayCommands: Sendable {
       || options.range != nil
       || options.chroma != nil
       || options.hdr != nil
+      || options.vrr != nil
     if options.displayMode != nil && hasSemantic {
       throw UsageError("--display-mode cannot be combined with semantic display-mode flags")
     }
@@ -434,18 +450,18 @@ struct DisplayCommands: Sendable {
       return nil
     }
 
-    let colors = try displayModeColors(options: options, state: state)
+    let intent = try displayModeIntent(options: options, state: state)
     if resolutionMayChange {
       guard let baseline else {
         throw UsageError("Current resolution mode id is unreadable; specify a stable current state first")
       }
-      return .postResolution(colors, baseline)
+      return .postResolution(intent, baseline)
     }
 
     let id = try resolveSemanticDisplayMode(
       selector: selector,
       state: state,
-      colors: colors
+      intent: intent
     )
     return .preResolved(id)
   }
@@ -493,13 +509,13 @@ struct DisplayCommands: Sendable {
       case .preResolved(let id):
         displayModeID = id
         baseline = nil
-      case .postResolution(let colors, let storedBaseline):
+      case .postResolution(let intent, let storedBaseline):
         baseline = storedBaseline
         do {
           displayModeID = try resolveSemanticDisplayMode(
             selector: selector,
             state: context.core.readDisplayState(selector),
-            colors: colors
+            intent: intent
           )
         } catch where resolutionChanged {
           let restore = restoreBaseline(storedBaseline, selector: selector)
@@ -736,7 +752,7 @@ struct DisplayCommands: Sendable {
   private func resolveSemanticDisplayMode(
     selector: DisplaySelector,
     state: DisplayState,
-    colors: DisplayModeColorIntent
+    intent: DisplayModeIntent
   ) throws -> DisplayModeID {
     let modes = try readableItems(
       context.core.listDisplayModes(selector), operation: "displayMode")
@@ -749,15 +765,16 @@ struct DisplayCommands: Sendable {
       ? state.outputTimingRefreshHz.value
       : nil
 
-    let matches = modes.filter { mode in
+    let baseMatches = modes.filter { mode in
       mode.outputTimingResolution == timing
         && (refresh == nil || approximatelyEqual(mode.outputTimingRefreshHz, refresh!))
-        && mode.encoding == colors.encoding
-        && mode.bitDepth == colors.bpc
-        && mode.range == colors.range
-        && mode.chroma == colors.chroma
-        && mode.hdrMode == colors.hdr
+        && mode.encoding == intent.encoding
+        && mode.bitDepth == intent.bpc
+        && mode.range == intent.range
+        && mode.hdrMode == intent.hdr
+        && mode.isVRR == intent.isVRR
     }
+    let matches = matchingChromaModes(baseMatches, intent)
     guard matches.count == 1, let match = matches.first else {
       throw UsageError(
         matches.isEmpty
@@ -767,15 +784,18 @@ struct DisplayCommands: Sendable {
     return match.id
   }
 
-  private func displayModeColors(options: DisplaySetOptions, state: DisplayState) throws
-    -> DisplayModeColorIntent
+  private func displayModeIntent(options: DisplaySetOptions, state: DisplayState) throws
+    -> DisplayModeIntent
   {
-    try DisplayModeColorIntent(
-      encoding: desiredValue(options.encoding?.coreValue, state.encoding, "encoding"),
+    try validateDolbyVisionSemanticFlags(options)
+    return try DisplayModeIntent(
+      encoding: desiredEncoding(options: options, state: state),
       bpc: desiredValue(options.bpc, state.bitDepth, "bpc"),
       range: desiredValue(options.range?.coreValue, state.range, "range"),
-      chroma: desiredValue(options.chroma?.coreValue, state.chroma, "chroma"),
-      hdr: desiredValue(options.hdr?.coreValue, state.hdrMode, "hdr")
+      chroma: desiredChroma(options: options, state: state),
+      chromaWasProvided: options.chroma != nil,
+      hdr: desiredValue(options.hdr?.coreValue, state.hdrMode, "hdr"),
+      isVRR: options.vrr?.boolValue ?? false
     )
   }
 
@@ -831,6 +851,15 @@ struct DisplayCommands: Sendable {
     return result.items
   }
 
+  private func validateDolbyVisionSemanticFlags(_ options: DisplaySetOptions) throws {
+    guard options.hdr?.coreValue.isDolby == true else {
+      return
+    }
+    if options.encoding != nil || options.chroma != nil {
+      throw UsageError("Dolby Vision modes do not use --encoding or --chroma; omit those flags")
+    }
+  }
+
   private func desiredValue<T: Codable & Equatable & Sendable>(
     _ provided: T?,
     _ axis: DisplayAxis<T>,
@@ -843,6 +872,35 @@ struct DisplayCommands: Sendable {
       return value
     }
     throw UsageError("Current \(name) is unreadable; specify it explicitly")
+  }
+
+  private func desiredEncoding(
+    options: DisplaySetOptions,
+    state: DisplayState
+  ) throws -> DisplayEncoding {
+    if let encoding = options.encoding?.coreValue {
+      return encoding
+    }
+    if options.hdr?.coreValue.isDolby == true {
+      return .none
+    }
+    return try desiredValue(nil, state.encoding, "encoding")
+  }
+
+  private func desiredChroma(
+    options: DisplaySetOptions,
+    state: DisplayState
+  ) throws -> DisplayChroma {
+    if let chroma = options.chroma?.coreValue {
+      return chroma
+    }
+    if options.hdr?.coreValue.isDolby == true {
+      return .none
+    }
+    if state.chroma.readability != .unreadable, let value = state.chroma.value {
+      return value
+    }
+    throw UsageError("Current chroma is unreadable; specify it explicitly")
   }
 
   private func parseResolutionArgument(_ value: String?) throws -> (width: Int, height: Int)? {
@@ -871,6 +929,18 @@ struct DisplayCommands: Sendable {
   private func approximatelyEqual(_ lhs: Double?, _ rhs: Double) -> Bool {
     guard let lhs else { return false }
     return abs(lhs - rhs) < 0.01
+  }
+
+  private func matchingChromaModes(
+    _ modes: [DisplayMode],
+    _ intent: DisplayModeIntent
+  ) -> [DisplayMode] {
+    if intent.chromaWasProvided {
+      return modes.filter { $0.chroma == intent.chroma }
+    }
+
+    let exact = modes.filter { $0.chroma == intent.chroma }
+    return exact.isEmpty ? modes.filter { $0.chroma == .unknown } : exact
   }
 
   private func exitCode(for reports: [OperationReport]) -> OMDExitCode {
@@ -940,12 +1010,20 @@ private struct PreMutationBlock: Error {
   var reason: String
 }
 
-private struct DisplayModeColorIntent: Sendable {
+private struct DisplayModeIntent: Sendable {
   var encoding: DisplayEncoding
   var bpc: Int
   var range: DisplayRange
   var chroma: DisplayChroma
+  var chromaWasProvided: Bool
   var hdr: DisplayHDRMode
+  var isVRR: Bool
+}
+
+extension DisplayHDRMode {
+  fileprivate var isDolby: Bool {
+    self == .dolbyVision || self == .dolbyVisionLowLatency
+  }
 }
 
 private struct MutationBaseline: Sendable {
@@ -955,7 +1033,7 @@ private struct MutationBaseline: Sendable {
 
 private enum DisplayModeRequest: Sendable {
   case preResolved(DisplayModeID)
-  case postResolution(DisplayModeColorIntent, MutationBaseline)
+  case postResolution(DisplayModeIntent, MutationBaseline)
 
   var preResolvedID: DisplayModeID? {
     switch self {

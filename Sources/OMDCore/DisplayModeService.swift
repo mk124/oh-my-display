@@ -91,18 +91,21 @@ struct DisplayModeService: Sendable {
   static func publicDisplayModeID(for mode: DisplayMode) -> String {
     let refresh = mode.outputTimingRefreshHz.map { String(format: "%.3f", $0) } ?? "unknown"
     let bpc = mode.bitDepth.map(String.init) ?? "unknown"
-    let colorKey = [
-      mode.hdrMode.rawValue,
-      mode.encoding.rawValue,
-      mode.range.rawValue,
-      mode.chroma.rawValue,
-    ].joined(separator: "")
-    return [
+    var parts = [
       "\(mode.outputTimingResolution.width)x\(mode.outputTimingResolution.height)",
       refresh,
-      "\(mode.encoding.rawValue)\(bpc)",
-      colorKey,
-    ].joined(separator: "-")
+    ]
+    if mode.isVRR {
+      parts.append("vrr")
+    }
+    parts.append(contentsOf: [
+      mode.encoding.rawValue,
+      bpc,
+      mode.hdrMode.rawValue,
+      mode.range.rawValue,
+      mode.chroma.rawValue,
+    ])
+    return parts.joined(separator: "-")
   }
 
   private static func displayModeWithoutGeneratedID(from dictionary: [String: Any])
@@ -122,8 +125,8 @@ struct DisplayModeService: Sendable {
     let range = DisplayRange(rawValue: dictionary["range"] as? String ?? "") ?? .unknown
     let chroma = DisplayChroma(rawValue: dictionary["chroma"] as? String ?? "") ?? .unknown
     let hdrRaw = dictionary["hdrMode"] as? String
-    let hdrMode: DisplayHDRMode =
-      hdrRaw == "sdr" ? .sdr : (hdrRaw == "hdr10" ? .hdr10 : .unknown)
+    let colorModeRaw = dictionary["colorModeRaw"] as? String
+    let hdrMode = DisplayHDRMode(rawValue: hdrRaw ?? "") ?? .unknown
 
     return DisplayMode(
       id: DisplayModeID(""),
@@ -134,6 +137,9 @@ struct DisplayModeService: Sendable {
       range: range,
       chroma: chroma,
       hdrMode: hdrMode,
+      hdrModeRaw: dictionary["hdrModeRaw"] as? String,
+      colorModeRaw: colorModeRaw,
+      modeDescription: dictionary["modeDescription"] as? String,
       isVirtual: (dictionary["isVirtual"] as? NSNumber)?.boolValue ?? false,
       isVRR: (dictionary["isVRR"] as? NSNumber)?.boolValue ?? false,
       isHighBandwidth: (dictionary["isHighBandwidth"] as? NSNumber)?.boolValue ?? false

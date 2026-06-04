@@ -84,7 +84,11 @@ static id OMDQuartzDisplayForID(CGDirectDisplayID displayID) {
     return nil;
 }
 
-static NSString *OMDQuartzEncodingString(NSNumber *ycbcr) {
+static NSString *OMDQuartzEncodingString(NSNumber *ycbcr, NSString *colorModeKey) {
+    if ([colorModeKey isEqualToString:@"dolbyvision"] ||
+        [colorModeKey isEqualToString:@"dolbyvisionlowlatency"]) {
+        return @"none";
+    }
     if (ycbcr == nil) {
         return @"unknown";
     }
@@ -103,38 +107,71 @@ static NSString *OMDQuartzSanitizedKey(id value, NSString *fallback) {
     return joined.length > 0 ? joined : fallback;
 }
 
-static NSString *OMDQuartzHDRString(id hdrMode) {
+static NSString *OMDQuartzDescriptionString(id value, NSString *fallback) {
+    NSString *text = value == nil ? fallback : [value description];
+    if (text.length == 0) {
+        return fallback;
+    }
+    return text;
+}
+
+static NSString *OMDQuartzHDRString(id hdrMode, NSString *colorModeKey) {
     NSString *key = OMDQuartzSanitizedKey(hdrMode, @"unknown");
-    if ([key isEqualToString:@"0"] || [key containsString:@"sdr"]) {
+    if ([colorModeKey isEqualToString:@"dolbyvisionlowlatency"]) {
+        return @"dolby-vision-low-latency";
+    }
+    if ([colorModeKey isEqualToString:@"dolbyvision"]) {
+        return @"dolby-vision";
+    }
+    if ([key isEqualToString:@"0"] || [key isEqualToString:@"sdr"]) {
         return @"sdr";
     }
     if ([key isEqualToString:@"unknown"]) {
         return @"unknown";
     }
-    if ([key containsString:@"hdr"]) {
-        return key;
+    if ([key isEqualToString:@"hdr10"]) {
+        return @"hdr10";
     }
-    return [@"hdr" stringByAppendingString:key];
+    return @"unknown";
 }
 
 static NSString *OMDQuartzRangeString(NSString *colorModeKey) {
-    if ([colorModeKey containsString:@"fullrange"]) {
+    if ([colorModeKey isEqualToString:@"dolbyvision"] ||
+        [colorModeKey isEqualToString:@"hdr10rgbfullrange"] ||
+        [colorModeKey isEqualToString:@"rgbfullrange"]) {
         return @"full";
     }
-    if ([colorModeKey containsString:@"limitedrange"]) {
+    if ([colorModeKey isEqualToString:@"dolbyvisionlowlatency"] ||
+        [colorModeKey isEqualToString:@"hdr10420limitedrange"] ||
+        [colorModeKey isEqualToString:@"hdr10422limitedrange"] ||
+        [colorModeKey isEqualToString:@"hdr10444limitedrange"] ||
+        [colorModeKey isEqualToString:@"rgblimitedrange"] ||
+        [colorModeKey isEqualToString:@"ycbcr420limitedrange"] ||
+        [colorModeKey isEqualToString:@"ycbcr422limitedrange"] ||
+        [colorModeKey isEqualToString:@"ycbcr444limitedrange"]) {
         return @"limited";
     }
     return @"unknown";
 }
 
 static NSString *OMDQuartzChromaString(NSString *colorModeKey) {
-    if ([colorModeKey containsString:@"444"]) {
+    if ([colorModeKey isEqualToString:@"dolbyvision"] ||
+        [colorModeKey isEqualToString:@"dolbyvisionlowlatency"] ||
+        [colorModeKey isEqualToString:@"hdr10rgbfullrange"] ||
+        [colorModeKey isEqualToString:@"rgbfullrange"] ||
+        [colorModeKey isEqualToString:@"rgblimitedrange"]) {
+        return @"none";
+    }
+    if ([colorModeKey isEqualToString:@"hdr10444limitedrange"] ||
+        [colorModeKey isEqualToString:@"ycbcr444limitedrange"]) {
         return @"444";
     }
-    if ([colorModeKey containsString:@"422"]) {
+    if ([colorModeKey isEqualToString:@"hdr10422limitedrange"] ||
+        [colorModeKey isEqualToString:@"ycbcr422limitedrange"]) {
         return @"422";
     }
-    if ([colorModeKey containsString:@"420"]) {
+    if ([colorModeKey isEqualToString:@"hdr10420limitedrange"] ||
+        [colorModeKey isEqualToString:@"ycbcr420limitedrange"]) {
         return @"420";
     }
     return @"unknown";
@@ -152,17 +189,23 @@ static NSDictionary *OMDQuartzModeDictionary(id mode) {
     BOOL vrr = OMDQuartzResponds(mode, @"isVRR") ? OMDQuartzSendBool(mode, @"isVRR") : NO;
     BOOL highBandwidth = OMDQuartzResponds(mode, @"isHighBandwidth") ? OMDQuartzSendBool(mode, @"isHighBandwidth") : NO;
     NSString *colorModeKey = OMDQuartzSanitizedKey(colorMode, @"unknown");
-    NSString *hdrModeKey = OMDQuartzHDRString(hdrMode);
+    NSString *hdrModeKey = OMDQuartzHDRString(hdrMode, colorModeKey);
+    NSString *colorModeRaw = OMDQuartzDescriptionString(colorMode, @"unknown");
+    NSString *hdrModeRaw = OMDQuartzDescriptionString(hdrMode, @"unknown");
+    NSString *modeDescription = OMDQuartzDescriptionString(mode, @"unknown");
 
     NSDictionary *dictionary = @{
         @"width": @(width),
         @"height": @(height),
         @"refreshHz": @(refresh),
         @"bitDepth": @(bitDepth),
-        @"encoding": OMDQuartzEncodingString(ycbcr),
+        @"encoding": OMDQuartzEncodingString(ycbcr, colorModeKey),
         @"range": OMDQuartzRangeString(colorModeKey),
         @"chroma": OMDQuartzChromaString(colorModeKey),
         @"hdrMode": hdrModeKey,
+        @"colorModeRaw": colorModeRaw,
+        @"hdrModeRaw": hdrModeRaw,
+        @"modeDescription": modeDescription,
         @"isVirtual": @(virtualMode),
         @"isVRR": @(vrr),
         @"isHighBandwidth": @(highBandwidth)

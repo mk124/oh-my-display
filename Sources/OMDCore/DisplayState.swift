@@ -18,6 +18,7 @@ public struct DisplayState: Codable, Equatable, Sendable {
   public var range: DisplayAxis<DisplayRange>
   public var chroma: DisplayAxis<DisplayChroma>
   public var hdrMode: DisplayAxis<DisplayHDRMode>
+  public var isVRR: DisplayAxis<Bool>
 
   public var ditheringEnabled: DisplayAxis<Bool>
   public var iccProfileURL: DisplayAxis<URL>
@@ -38,6 +39,7 @@ public struct DisplayState: Codable, Equatable, Sendable {
     range: DisplayAxis<DisplayRange>,
     chroma: DisplayAxis<DisplayChroma>,
     hdrMode: DisplayAxis<DisplayHDRMode>,
+    isVRR: DisplayAxis<Bool>,
     ditheringEnabled: DisplayAxis<Bool>,
     iccProfileURL: DisplayAxis<URL>
   ) {
@@ -56,6 +58,7 @@ public struct DisplayState: Codable, Equatable, Sendable {
     self.range = range
     self.chroma = chroma
     self.hdrMode = hdrMode
+    self.isVRR = isVRR
     self.ditheringEnabled = ditheringEnabled
     self.iccProfileURL = iccProfileURL
   }

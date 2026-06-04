@@ -137,11 +137,28 @@ final class DisplayModeServiceTests: XCTestCase {
     XCTAssertEqual(
       modes.map(\.id.rawValue),
       [
-        "3840x2160-120.000-rgb10-sdrrgbfullunknown",
-        "3840x2160-120.000-rgb10-sdrrgbfullunknown-2",
+        "3840x2160-120.000-rgb-10-sdr-full-none",
+        "3840x2160-120.000-rgb-10-sdr-full-none-2",
       ])
     XCTAssertEqual(modes[0].range, .full)
     XCTAssertEqual(modes[0].encoding, .rgb)
+    XCTAssertEqual(modes[0].chroma, .none)
+  }
+
+  func testDisplayModeIDsIncludeVRRStateBeforeDuplicateSuffix() {
+    let modes = DisplayModeService.displayModes(from: [
+      bridgeDictionary(isVRR: false),
+      bridgeDictionary(isVRR: true),
+      bridgeDictionary(isVRR: true),
+    ])
+
+    XCTAssertEqual(
+      modes.map(\.id.rawValue),
+      [
+        "3840x2160-120.000-rgb-10-sdr-full-none",
+        "3840x2160-120.000-vrr-rgb-10-sdr-full-none",
+        "3840x2160-120.000-vrr-rgb-10-sdr-full-none-2",
+      ])
   }
 
   func testDisplayModeParserKeepsYCbCrLimitedChromaAndHDRFacts() {
@@ -159,13 +176,51 @@ final class DisplayModeServiceTests: XCTestCase {
     XCTAssertEqual(modes.count, 1)
     XCTAssertEqual(
       modes[0].id.rawValue,
-      "3840x2160-59.940-ycbcr12-hdr10ycbcrlimited422")
+      "3840x2160-59.940-ycbcr-12-hdr10-limited-422")
     XCTAssertEqual(modes[0].outputTimingRefreshHz, 59.94)
     XCTAssertEqual(modes[0].bitDepth, 12)
     XCTAssertEqual(modes[0].encoding, .ycbcr)
     XCTAssertEqual(modes[0].range, .limited)
     XCTAssertEqual(modes[0].chroma, .c422)
     XCTAssertEqual(modes[0].hdrMode, .hdr10)
+  }
+
+  func testDisplayModeParserKeepsDolbyVisionLowLatencyRawFacts() {
+    let modes = DisplayModeService.displayModes(from: [
+      bridgeDictionary(
+        refreshHz: 59.999998658895493,
+        bitDepth: 12,
+        encoding: "none",
+        range: "limited",
+        chroma: "none",
+        hdrMode: "dolby-vision-low-latency",
+        hdrModeRaw: "Dolby",
+        colorModeRaw: "DolbyVisionLowLatency",
+        modeDescription: "<CADisplayMode 3840 x 2160 fmt:DolbyVision_LowLatency range:limited>"
+      )
+    ])
+
+    XCTAssertEqual(modes.count, 1)
+    XCTAssertEqual(
+      modes[0].id.rawValue,
+      "3840x2160-60.000-none-12-dolby-vision-low-latency-limited-none")
+    XCTAssertEqual(modes[0].encoding, .none)
+    XCTAssertEqual(modes[0].hdrMode, .dolbyVisionLowLatency)
+    XCTAssertEqual(modes[0].hdrModeRaw, "Dolby")
+    XCTAssertEqual(modes[0].colorModeRaw, "DolbyVisionLowLatency")
+    XCTAssertEqual(
+      modes[0].modeDescription,
+      "<CADisplayMode 3840 x 2160 fmt:DolbyVision_LowLatency range:limited>")
+  }
+
+  func testDisplayModeParserKeepsNormalizedDolbyVisionValue() {
+    let modes = DisplayModeService.displayModes(from: [
+      bridgeDictionary(encoding: "none", hdrMode: "dolby-vision")
+    ])
+
+    XCTAssertEqual(modes.count, 1)
+    XCTAssertEqual(modes[0].encoding, .none)
+    XCTAssertEqual(modes[0].hdrMode, .dolbyVision)
   }
 
   func testDisplayModeParserDoesNotTreatUnknownHDRValuesAsHDR10() {
@@ -185,7 +240,8 @@ final class DisplayModeServiceTests: XCTestCase {
     XCTAssertEqual(modes.count, 1)
     XCTAssertNil(modes[0].outputTimingRefreshHz)
     XCTAssertNil(modes[0].bitDepth)
-    XCTAssertEqual(modes[0].id.rawValue, "3840x2160-unknown-rgbunknown-sdrrgbfullunknown")
+    XCTAssertEqual(
+      modes[0].id.rawValue, "3840x2160-unknown-rgb-unknown-sdr-full-none")
   }
 
   func testDisplayModeParserTreatsMissingEncodingAsUnknown() {
@@ -198,7 +254,7 @@ final class DisplayModeServiceTests: XCTestCase {
     XCTAssertEqual(modes[0].encoding, .unknown)
     XCTAssertEqual(
       modes[0].id.rawValue,
-      "3840x2160-120.000-unknown10-sdrunknownfullunknown")
+      "3840x2160-120.000-unknown-10-sdr-full-none")
   }
 
   func testBridgeFailureResultMapsStableErrorCodesBeforeMutation() {
@@ -253,10 +309,14 @@ final class DisplayModeServiceTests: XCTestCase {
     bitDepth: Int = 10,
     encoding: String = "rgb",
     range: String = "full",
-    chroma: String = "unknown",
-    hdrMode: String = "sdr"
+    chroma: String = "none",
+    hdrMode: String = "sdr",
+    isVRR: Bool = false,
+    hdrModeRaw: String? = nil,
+    colorModeRaw: String? = nil,
+    modeDescription: String? = nil
   ) -> [String: Any] {
-    [
+    var dictionary: [String: Any] = [
       "width": NSNumber(value: 3840),
       "height": NSNumber(value: 2160),
       "refreshHz": NSNumber(value: refreshHz),
@@ -266,9 +326,19 @@ final class DisplayModeServiceTests: XCTestCase {
       "chroma": chroma,
       "hdrMode": hdrMode,
       "isVirtual": NSNumber(value: false),
-      "isVRR": NSNumber(value: false),
+      "isVRR": NSNumber(value: isVRR),
       "isHighBandwidth": NSNumber(value: true),
     ]
+    if let hdrModeRaw {
+      dictionary["hdrModeRaw"] = hdrModeRaw
+    }
+    if let colorModeRaw {
+      dictionary["colorModeRaw"] = colorModeRaw
+    }
+    if let modeDescription {
+      dictionary["modeDescription"] = modeDescription
+    }
+    return dictionary
   }
 
   private func error(code: CFIndex) -> Unmanaged<CFError> {

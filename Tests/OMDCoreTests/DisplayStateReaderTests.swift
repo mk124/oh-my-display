@@ -30,8 +30,9 @@ final class DisplayStateReaderTests: XCTestCase {
         bitDepth: 10,
         encoding: .rgb,
         range: .full,
-        chroma: .c444,
-        hdr: .hdr10
+        chroma: .none,
+        hdr: .hdr10,
+        isVRR: true
       ),
       dithering: [
         DitheringFramebuffer(
@@ -53,8 +54,10 @@ final class DisplayStateReaderTests: XCTestCase {
     XCTAssertEqual(state.bitDepth.value, 10)
     XCTAssertEqual(state.encoding.value, .rgb)
     XCTAssertEqual(state.range.value, .full)
-    XCTAssertEqual(state.chroma.value, .c444)
+    XCTAssertEqual(state.chroma.readability, .readable)
+    XCTAssertEqual(state.chroma.value, DisplayChroma.none)
     XCTAssertEqual(state.hdrMode.value, .hdr10)
+    XCTAssertEqual(state.isVRR.value, true)
     XCTAssertEqual(state.ditheringEnabled.value, false)
     XCTAssertEqual(state.iccProfileURL.readability, .unreadable)
   }
@@ -96,6 +99,7 @@ final class DisplayStateReaderTests: XCTestCase {
     XCTAssertEqual(state.outputTimingResolution.readability, .unreadable)
     XCTAssertEqual(state.bitDepth.readability, .unreadable)
     XCTAssertEqual(state.encoding.readability, .unreadable)
+    XCTAssertEqual(state.isVRR.readability, .unreadable)
   }
 
   private func reader(
@@ -159,8 +163,9 @@ final class DisplayStateReaderTests: XCTestCase {
     bitDepth: Int? = 8,
     encoding: DisplayEncoding = .rgb,
     range: DisplayRange = .full,
-    chroma: DisplayChroma = .c444,
-    hdr: DisplayHDRMode = .sdr
+    chroma: DisplayChroma = .none,
+    hdr: DisplayHDRMode = .sdr,
+    isVRR: Bool = false
   ) -> DisplayMode {
     DisplayMode(
       id: DisplayModeID(id),
@@ -170,7 +175,8 @@ final class DisplayStateReaderTests: XCTestCase {
       encoding: encoding,
       range: range,
       chroma: chroma,
-      hdrMode: hdr
+      hdrMode: hdr,
+      isVRR: isVRR
     )
   }
 }

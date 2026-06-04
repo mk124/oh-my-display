@@ -32,10 +32,11 @@ enum OutputRenderer {
       ("resolution.refresh", state.resolutionRefreshHz.value.map { String(format: "%.3g", $0) } ?? "unknown"),
       ("displayMode.timing", state.outputTimingResolution.value?.description ?? "unknown"),
       ("displayMode.bpc", state.bitDepth.value.map(String.init) ?? "unknown"),
-      ("displayMode.encoding", state.encoding.value?.rawValue ?? "unknown"),
+      ("displayMode.encoding", state.encoding.value.map(encodingText) ?? "unknown"),
       ("displayMode.range", state.range.value?.rawValue ?? "unknown"),
-      ("displayMode.chroma", state.chroma.value?.rawValue ?? "unknown"),
+      ("displayMode.chroma", state.chroma.value.map(chromaText) ?? "unknown"),
       ("displayMode.hdr", state.hdrMode.value?.rawValue ?? "unknown"),
+      ("displayMode.vrr", state.isVRR.value.map { $0 ? "on" : "off" } ?? "unknown"),
       ("dithering", state.ditheringEnabled.value.map { $0 ? "on" : "off" } ?? "unknown"),
       ("icc", state.iccProfileURL.value?.lastPathComponent ?? "unknown"),
     ]
@@ -51,7 +52,7 @@ enum OutputRenderer {
     guard result.readability != .unreadable else {
       return "resolution modes unavailable: \(result.reason ?? "unknown")\n"
     }
-    let modes = groupedByBacking(result.items)
+    let modes = sortedResolutionModesForTable(result.items)
     return renderTable(
       headers: ["logical", "backing", "scale", "hidpi", "refresh", "resolutionMode"],
       rows: modes.map { mode in
@@ -75,17 +76,20 @@ enum OutputRenderer {
     guard result.readability != .unreadable else {
       return "display modes unavailable: \(result.reason ?? "unknown")\n"
     }
+    let modes = sortedDisplayModesForTable(result.items)
     return renderTable(
-      headers: ["timing", "refresh", "encoding", "bpc", "range", "chroma", "hdr", "displayMode"],
-      rows: result.items.map { mode in
+      headers: [
+        "timing", "hdr", "refresh", "encoding", "bpc", "range", "chroma", "displayMode",
+      ],
+      rows: modes.map { mode in
       [
         mode.outputTimingResolution.description,
-        mode.outputTimingRefreshHz.map { String(format: "%.3g", $0) } ?? "unknown",
-        mode.encoding.rawValue,
+        mode.hdrMode.rawValue,
+        displayModeRefreshText(mode),
+        encodingText(mode.encoding),
         mode.bitDepth.map(String.init) ?? "unknown",
         mode.range.rawValue,
-        mode.chroma.rawValue,
-        mode.hdrMode.rawValue,
+        chromaText(mode.chroma),
         mode.id.rawValue,
       ]
     })
@@ -116,7 +120,7 @@ enum OutputRenderer {
     return String(decoding: data, as: UTF8.self) + "\n"
   }
 
-  private static func groupedByBacking(_ modes: [ResolutionMode]) -> [ResolutionMode] {
+  private static func sortedResolutionModesForTable(_ modes: [ResolutionMode]) -> [ResolutionMode] {
     var groups: [(backing: DisplaySize, modes: [ResolutionMode])] = []
     for mode in modes {
       if let index = groups.firstIndex(where: { $0.backing == mode.backingResolution }) {
@@ -135,11 +139,136 @@ enum OutputRenderer {
         return lhs.backing.width < rhs.backing.width
       }
       return lhs.backing.height < rhs.backing.height
-    }.flatMap(\.modes)
+    }.flatMap { group in
+      group.modes.sorted { lhs, rhs in
+        let lhsLogical = lhs.logicalResolution
+        let rhsLogical = rhs.logicalResolution
+        let lhsLogicalPixels = pixelCount(lhsLogical)
+        let rhsLogicalPixels = pixelCount(rhsLogical)
+        if lhsLogicalPixels != rhsLogicalPixels {
+          return lhsLogicalPixels < rhsLogicalPixels
+        }
+        if lhs.refreshHz != rhs.refreshHz {
+          return optionalDoubleRank(lhs.refreshHz) > optionalDoubleRank(rhs.refreshHz)
+        }
+        if lhs.isHiDPI != rhs.isHiDPI {
+          return lhs.isHiDPI
+        }
+        if lhs.scaleFactor != rhs.scaleFactor {
+          return lhs.scaleFactor > rhs.scaleFactor
+        }
+        if lhsLogical.width != rhsLogical.width {
+          return lhsLogical.width < rhsLogical.width
+        }
+        if lhsLogical.height != rhsLogical.height {
+          return lhsLogical.height < rhsLogical.height
+        }
+        return lhs.id.rawValue < rhs.id.rawValue
+      }
+    }
+  }
+
+  private static func sortedDisplayModesForTable(_ modes: [DisplayMode]) -> [DisplayMode] {
+    modes.sorted { lhs, rhs in
+      let lhsTiming = lhs.outputTimingResolution
+      let rhsTiming = rhs.outputTimingResolution
+      let lhsPixels = pixelCount(lhsTiming)
+      let rhsPixels = pixelCount(rhsTiming)
+      if lhsPixels != rhsPixels {
+        return lhsPixels < rhsPixels
+      }
+      if lhs.hdrMode != rhs.hdrMode {
+        return hdrRank(lhs.hdrMode) < hdrRank(rhs.hdrMode)
+      }
+      if lhs.outputTimingRefreshHz != rhs.outputTimingRefreshHz {
+        return optionalDoubleRank(lhs.outputTimingRefreshHz)
+          > optionalDoubleRank(rhs.outputTimingRefreshHz)
+      }
+      if lhs.isVRR != rhs.isVRR {
+        return !lhs.isVRR
+      }
+      if lhs.encoding != rhs.encoding {
+        return encodingRank(lhs.encoding) < encodingRank(rhs.encoding)
+      }
+      if lhs.bitDepth != rhs.bitDepth {
+        return optionalIntRank(lhs.bitDepth) > optionalIntRank(rhs.bitDepth)
+      }
+      if lhs.range != rhs.range {
+        return rangeRank(lhs.range) < rangeRank(rhs.range)
+      }
+      if lhs.chroma != rhs.chroma {
+        return chromaRank(lhs.chroma) < chromaRank(rhs.chroma)
+      }
+      if lhsTiming.width != rhsTiming.width {
+        return lhsTiming.width < rhsTiming.width
+      }
+      if lhsTiming.height != rhsTiming.height {
+        return lhsTiming.height < rhsTiming.height
+      }
+      return lhs.id.rawValue < rhs.id.rawValue
+    }
   }
 
   private static func pixelCount(_ size: DisplaySize) -> Int {
     size.width * size.height
+  }
+
+  private static func optionalDoubleRank(_ value: Double?) -> Double {
+    value ?? -Double.greatestFiniteMagnitude
+  }
+
+  private static func optionalIntRank(_ value: Int?) -> Int {
+    value ?? Int.min
+  }
+
+  private static func displayModeRefreshText(_ mode: DisplayMode) -> String {
+    let refresh = mode.outputTimingRefreshHz.map { String(format: "%.3g", $0) } ?? "unknown"
+    return mode.isVRR ? "\(refresh) (VRR)" : refresh
+  }
+
+  private static func chromaText(_ value: DisplayChroma) -> String {
+    value == .none ? "-" : value.rawValue
+  }
+
+  private static func encodingText(_ value: DisplayEncoding) -> String {
+    value == .none ? "-" : value.rawValue
+  }
+
+  private static func hdrRank(_ value: DisplayHDRMode) -> Int {
+    switch value {
+    case .sdr: 0
+    case .hdr10: 1
+    case .dolbyVision: 2
+    case .dolbyVisionLowLatency: 3
+    case .unknown: 4
+    }
+  }
+
+  private static func encodingRank(_ value: DisplayEncoding) -> Int {
+    switch value {
+    case .rgb: 0
+    case .ycbcr: 1
+    case .none: 2
+    case .unknown: 3
+    }
+  }
+
+  private static func rangeRank(_ value: DisplayRange) -> Int {
+    switch value {
+    case .full: 0
+    case .limited: 1
+    case .unknown: 2
+    }
+  }
+
+  private static func chromaRank(_ value: DisplayChroma) -> Int {
+    switch value {
+    case .none: 0
+    case .c444: 1
+    case .c422: 2
+    case .c420: 3
+    case .unknown: 4
+    }
   }
 
   private static func renderTable(headers: [String], rows: [[String]]) -> String {
@@ -222,6 +351,7 @@ private struct DisplayModeOutput: Codable {
   var range: String?
   var chroma: String?
   var hdr: String?
+  var vrr: Bool?
 
   init(_ state: DisplayState) {
     self.currentMode = state.currentDisplayModeID.value?.rawValue
@@ -232,6 +362,7 @@ private struct DisplayModeOutput: Codable {
     self.range = state.range.value?.rawValue
     self.chroma = state.chroma.value?.rawValue
     self.hdr = state.hdrMode.value?.rawValue
+    self.vrr = state.isVRR.value
   }
 }
 

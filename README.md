@@ -7,11 +7,11 @@ oh-my-display is a macOS display control project for reading and setting display
 ## Supported Features
 
 - List connected displays and stable selectors.
-- Read current display state, including resolution, refresh rate, HiDPI state, display mode, dithering, and ICC profile.
+- Read current display state, including resolution, refresh rate, HiDPI state, display mode, VRR state, dithering, and ICC profile.
 - List display-reported resolution modes, including logical size, backing size, scale, HiDPI state, and refresh rate.
-- List display modes, including output timing, refresh rate, encoding, bit depth, range, chroma, and SDR/HDR mode.
+- List display modes, including output timing, SDR/HDR mode, Dolby Vision Low Latency, refresh rate with VRR indicator, encoding, bit depth, range, and chroma.
 - Set resolution modes by exact mode ID or by logical resolution, HiDPI state, and refresh rate.
-- Set display modes by exact mode ID or by color properties such as encoding, bit depth, range, chroma, and SDR/HDR mode.
+- Set display modes by exact mode ID or by properties such as encoding, bit depth, range, chroma, SDR/HDR mode, and VRR.
 - Set dithering on or off.
 - Set a display ICC profile.
 - Emit JSON for scripting and automation.
@@ -131,7 +131,7 @@ omd display set --resolution 1920x1080 --hidpi on --refresh 120 --yes
 Set display-mode properties for the current timing:
 
 ```sh
-omd display set --encoding rgb --bpc 10 --range full --chroma 444 --hdr sdr --yes
+omd display set --encoding rgb --bpc 10 --range full --hdr sdr --yes
 ```
 
 Combine a resolution change with semantic display-mode properties:
@@ -144,7 +144,6 @@ omd display set \
   --encoding rgb \
   --bpc 10 \
   --range full \
-  --chroma 444 \
   --hdr sdr \
   --yes
 ```
@@ -190,7 +189,8 @@ omd version
 --bpc <bits-per-component>
 --range full|limited
 --chroma 444|422|420
---hdr sdr|hdr10
+--hdr sdr|hdr10|dolby-vision|dolby-vision-low-latency
+--vrr on|off
 --dithering on|off
 --icc <path>
 ```
@@ -198,8 +198,11 @@ omd version
 Rules:
 
 - `--resolution-mode` cannot be combined with `--resolution`, `--hidpi`, or `--refresh`.
-- `--display-mode` cannot be combined with semantic display-mode flags such as `--bpc` or `--hdr`.
+- `--display-mode` cannot be combined with semantic display-mode flags such as `--bpc`, `--hdr`, or `--vrr`.
 - `--display-mode` cannot be combined with a resolution change. Use semantic display-mode flags if the desired display mode should be resolved after the resolution changes.
+- Omit `--encoding` and `--chroma` for Dolby Vision modes; they report `none` in JSON and `-` in human tables.
+- Omit `--chroma` for RGB modes; use it for YCbCr 444, 422, or 420 modes.
+- Semantic display-mode selection defaults to `--vrr off`; pass `--vrr on` to select a VRR mode.
 
 ## Exit Codes
 

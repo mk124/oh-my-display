@@ -79,6 +79,7 @@ struct DisplaySet: ParsableCommand {
   @Option var range: RangeArgument?
   @Option var chroma: ChromaArgument?
   @Option var hdr: HDRArgument?
+  @Option var vrr: VRRArgument?
   @Option var dithering: DitheringArgument?
   @Option var icc: String?
   @Flag var json = false
@@ -97,6 +98,7 @@ struct DisplaySet: ParsableCommand {
       range: range,
       chroma: chroma,
       hdr: hdr,
+      vrr: vrr,
       dithering: dithering,
       icc: icc.map { URL(fileURLWithPath: NSString(string: $0).expandingTildeInPath) },
       json: json,
@@ -130,5 +132,6 @@ extension EncodingArgument: ExpressibleByArgument {}
 extension RangeArgument: ExpressibleByArgument {}
 extension ChromaArgument: ExpressibleByArgument {}
 extension HDRArgument: ExpressibleByArgument {}
+extension VRRArgument: ExpressibleByArgument {}
 extension DitheringArgument: ExpressibleByArgument {}
 extension HiDPIArgument: ExpressibleByArgument {}

@@ -32,6 +32,7 @@ final class DisplayTypesTests: XCTestCase {
       range: .unreadable(source: "private axis unavailable"),
       chroma: .unreadable(source: "private axis unavailable"),
       hdrMode: .readable(.sdr),
+      isVRR: .readable(false),
       ditheringEnabled: .unreadable(source: "dither unavailable"),
       iccProfileURL: .unreadable(source: "icc unavailable")
     )
