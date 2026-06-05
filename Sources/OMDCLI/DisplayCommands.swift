@@ -376,10 +376,12 @@ struct DisplayCommands: Sendable {
     if input == "main" {
       return try selectorForRead(input)
     }
-    if !input.contains(":") {
-      throw UsageError("Mutating commands require a stable selector copied from `omd display list`")
+    let selector = DisplaySelector(input)
+    if !selector.isStableIdentity {
+      throw UsageError(
+        "Mutating commands require a stable uuid: selector from `omd display list`, or --display main")
     }
-    return DisplaySelector(input)
+    return selector
   }
 
   private func resolveResolutionRequest(

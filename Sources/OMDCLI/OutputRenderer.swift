@@ -13,7 +13,7 @@ enum OutputRenderer {
         display.isMain ? "yes" : "no",
         display.isBuiltin ? "yes" : "no",
         display.label,
-        display.selector.rawValue,
+        displayListSelectorText(display.selector),
       ]
     })
   }
@@ -300,9 +300,13 @@ enum OutputRenderer {
         }
         let padding = String(repeating: " ", count: widths[index] - value.count)
         return value + padding
-      }.joined(separator: "  ")
+      }.joined(separator: "  ").trimmingCharacters(in: .whitespaces)
     }
     return lines.joined(separator: "\n") + "\n"
+  }
+
+  private static func displayListSelectorText(_ selector: DisplaySelector) -> String {
+    selector.isStableIdentity ? selector.rawValue : ""
   }
 }
 
@@ -313,7 +317,7 @@ private struct DisplayTargetOutput: Codable {
   var label: String
 
   init(_ display: DisplayTarget) {
-    self.selector = display.selector.rawValue
+    self.selector = display.selector.isStableIdentity ? display.selector.rawValue : ""
     self.main = display.isMain
     self.builtin = display.isBuiltin
     self.label = display.label

@@ -24,6 +24,14 @@ final class DisplayCommandsTests: XCTestCase {
 
   func testListJSONUsesCLIDTOAndDoesNotExposeRawDisplayID() throws {
     let core = FakeCore()
+    core.displays.append(
+      DisplayTarget(
+        selector: DisplaySelector("cg:2"),
+        displayID: 2,
+        label: "Fallback",
+        isMain: false,
+        isBuiltin: false
+      ))
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
     let result = commands.list(json: true)
@@ -31,9 +39,11 @@ final class DisplayCommandsTests: XCTestCase {
 
     XCTAssertEqual(result.exitCode, .success)
     XCTAssertEqual(displays.first?["selector"] as? String, "uuid:one")
+    XCTAssertEqual(displays.dropFirst().first?["selector"] as? String, "")
     XCTAssertEqual(displays.first?["main"] as? Bool, true)
     XCTAssertEqual(displays.first?["builtin"] as? Bool, false)
     XCTAssertNil(displays.first?["displayID"])
+    XCTAssertNil(displays.dropFirst().first?["displayID"])
     XCTAssertTrue(core.callLog.allSatisfy { !$0.hasPrefix("set") })
   }
 
@@ -47,6 +57,14 @@ final class DisplayCommandsTests: XCTestCase {
         isMain: false,
         isBuiltin: true
       ))
+    core.displays.append(
+      DisplayTarget(
+        selector: DisplaySelector("cg:3"),
+        displayID: 3,
+        label: "Fallback",
+        isMain: false,
+        isBuiltin: false
+      ))
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
     let result = commands.list(json: false)
@@ -58,6 +76,7 @@ final class DisplayCommandsTests: XCTestCase {
         main  builtin  label             selector
         yes   no       One               uuid:one
         no    yes      Long Living Room  uuid:two-long
+        no    no       Fallback
 
         """)
   }
@@ -492,6 +511,28 @@ final class DisplayCommandsTests: XCTestCase {
     XCTAssertEqual(
       commands.set(DisplaySetOptions(display: "Living Room", dithering: .off)).exitCode,
       .usage)
+    XCTAssertEqual(
+      commands.set(DisplaySetOptions(display: "cg:1", dithering: .off)).exitCode,
+      .usage)
+  }
+
+  func testMutatingMainAllowsRuntimeFallbackSelector() {
+    let core = FakeCore()
+    core.displays = [
+      DisplayTarget(
+        selector: DisplaySelector("cg:1"),
+        displayID: 1,
+        label: "One",
+        isMain: true,
+        isBuiltin: false
+      )
+    ]
+    let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
+
+    let result = commands.set(DisplaySetOptions(display: "main", dithering: .off))
+
+    XCTAssertEqual(result.exitCode, .success)
+    XCTAssertEqual(core.callLog, ["listDisplays", "setDithering:false"])
   }
 
   func testNoSetFlagsReturnsUsage() {

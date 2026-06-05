@@ -8,6 +8,10 @@ public struct DisplaySelector: Codable, Hashable, Sendable, CustomStringConverti
   }
 
   public var description: String { rawValue }
+
+  package var isStableIdentity: Bool {
+    rawValue.hasPrefix("uuid:")
+  }
 }
 
 public struct ResolutionModeID: Codable, Hashable, Sendable, CustomStringConvertible {
