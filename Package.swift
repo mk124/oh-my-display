@@ -9,6 +9,7 @@ let package = Package(
   ],
   products: [
     .library(name: "OMDCore", targets: ["OMDCore"]),
+    .executable(name: "OhMyDisplay", targets: ["OhMyDisplay"]),
     .executable(name: "omd", targets: ["omd"]),
   ],
   dependencies: [
@@ -40,6 +41,17 @@ let package = Package(
         .product(name: "ArgumentParser", package: "swift-argument-parser"),
       ]
     ),
+    .target(
+      name: "OMDAppCore",
+      dependencies: ["OMDCore"]
+    ),
+    .executableTarget(
+      name: "OhMyDisplay",
+      dependencies: ["OMDAppCore", "OMDCore"],
+      linkerSettings: [
+        .linkedFramework("AppKit")
+      ]
+    ),
     .executableTarget(
       name: "omd",
       dependencies: [
@@ -53,6 +65,10 @@ let package = Package(
     .testTarget(
       name: "OMDCLITests",
       dependencies: ["OMDCLI"]
+    ),
+    .testTarget(
+      name: "OMDAppCoreTests",
+      dependencies: ["OMDAppCore"]
     ),
   ]
 )

@@ -14,6 +14,10 @@ public struct DisplaySetResult: Codable, Equatable, Sendable {
   public var attemptedMutation: Bool
   public var reason: String?
 
+  package var isSuccessful: Bool {
+    status == .applied || status == .noOp
+  }
+
   public init(status: DisplaySetStatus, attemptedMutation: Bool, reason: String? = nil) {
     self.status = status
     self.attemptedMutation = attemptedMutation
