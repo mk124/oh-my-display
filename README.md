@@ -2,7 +2,7 @@
 
 oh-my-display is a macOS display control project for reading and setting display state.
 
-`omd` is meant to be a practical user-facing CLI: list displays, inspect the current state, list available resolution and display modes, and apply supported changes from scripts or `.command` files.
+`omd` is meant to be a practical user-facing CLI: list displays, inspect the current state, list available resolution, display, and ICC profile options, and apply supported changes from scripts or `.command` files.
 
 ## Supported Features
 
@@ -10,6 +10,7 @@ oh-my-display is a macOS display control project for reading and setting display
 - Read current display state, including resolution, refresh rate, HiDPI state, display mode, VRR state, dithering, and ICC profile.
 - List display-reported resolution modes, including logical size, backing size, scale, HiDPI state, and refresh rate.
 - List display modes, including output timing, SDR/HDR mode, Dolby Vision Low Latency, refresh rate with VRR indicator, encoding, bit depth, range, and chroma.
+- List installed ColorSync ICC profiles.
 - Set resolution modes by exact mode ID or by logical resolution, HiDPI state, and refresh rate.
 - Set display modes by exact mode ID or by properties such as encoding, bit depth, range, chroma, SDR/HDR mode, and VRR.
 - Set dithering on or off.
@@ -70,12 +71,19 @@ List available display modes for the main display:
 omd display modes
 ```
 
+List installed ICC profiles:
+
+```sh
+omd icc list
+```
+
 All read commands support JSON output:
 
 ```sh
 omd display get --json
 omd display resolutions --json
 omd display modes --json
+omd icc list --json
 ```
 
 ## Display Selection
@@ -174,6 +182,7 @@ omd display get [--display <display>] [--json]
 omd display resolutions [--display <display>] [--json]
 omd display modes [--display <display>] [--json]
 omd display set [--display <display>] [set options] [--json] [--yes]
+omd icc list [--json]
 omd version
 ```
 

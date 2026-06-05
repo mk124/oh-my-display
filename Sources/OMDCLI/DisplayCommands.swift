@@ -196,9 +196,9 @@ struct DisplayCommands: Sendable {
         exitCode: .success,
         stdout: OutputRenderer.renderDisplays(context.core.listDisplays(), json: json))
     } catch let error as DisplayControlError {
-      return displayControlError(error)
+      return .displayControlError(error)
     } catch {
-      return unexpected(error)
+      return .unexpected(error)
     }
   }
 
@@ -211,9 +211,9 @@ struct DisplayCommands: Sendable {
     } catch let error as UsageError {
       return error.result
     } catch let error as DisplayControlError {
-      return displayControlError(error)
+      return .displayControlError(error)
     } catch {
-      return unexpected(error)
+      return .unexpected(error)
     }
   }
 
@@ -227,9 +227,9 @@ struct DisplayCommands: Sendable {
     } catch let error as UsageError {
       return error.result
     } catch let error as DisplayControlError {
-      return displayControlError(error)
+      return .displayControlError(error)
     } catch {
-      return unexpected(error)
+      return .unexpected(error)
     }
   }
 
@@ -243,9 +243,9 @@ struct DisplayCommands: Sendable {
     } catch let error as UsageError {
       return error.result
     } catch let error as DisplayControlError {
-      return displayControlError(error)
+      return .displayControlError(error)
     } catch {
-      return unexpected(error)
+      return .unexpected(error)
     }
   }
 
@@ -325,9 +325,9 @@ struct DisplayCommands: Sendable {
     } catch let error as PreMutationBlock {
       return preMutationBlocked(error.reason, json: options.json, operation: error.operation)
     } catch let error as DisplayControlError {
-      return displayControlError(error)
+      return .displayControlError(error)
     } catch {
-      return unexpected(error)
+      return .unexpected(error)
     }
   }
 
@@ -966,19 +966,6 @@ struct DisplayCommands: Sendable {
 
   private func usage(_ message: String) -> CommandResult {
     CommandResult(exitCode: .usage, stderr: message + "\n")
-  }
-
-  private func unexpected(_ error: Error) -> CommandResult {
-    CommandResult(exitCode: .unexpected, stderr: String(describing: error) + "\n")
-  }
-
-  private func displayControlError(_ error: DisplayControlError) -> CommandResult {
-    switch error {
-    case .displayNotFound, .ambiguousDisplay, .invalidSelector:
-      usage(error.description)
-    case .unexpected:
-      unexpected(error)
-    }
   }
 
   private func failureReason(_ error: Error) -> String {

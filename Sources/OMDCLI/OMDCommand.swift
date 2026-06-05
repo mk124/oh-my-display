@@ -5,7 +5,7 @@ public struct OMDCommand: ParsableCommand {
   public static let configuration = CommandConfiguration(
     commandName: "omd",
     abstract: "Read and set macOS display state.",
-    subcommands: [Display.self, VersionCommand.self]
+    subcommands: [Display.self, ICC.self, VersionCommand.self]
   )
 
   public init() {}
@@ -19,6 +19,23 @@ struct Display: ParsableCommand {
       DisplaySet.self,
     ]
   )
+}
+
+struct ICC: ParsableCommand {
+  static let configuration = CommandConfiguration(
+    abstract: "List installed ICC profiles.",
+    subcommands: [ICCList.self]
+  )
+}
+
+struct ICCList: ParsableCommand {
+  static let configuration = CommandConfiguration(commandName: "list")
+
+  @Flag var json = false
+
+  func run() throws {
+    emitAndExit(ICCCommands(context: liveContext()).list(json: json))
+  }
 }
 
 struct DisplayList: ParsableCommand {

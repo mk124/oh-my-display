@@ -62,6 +62,37 @@ final class DisplayCommandsTests: XCTestCase {
         """)
   }
 
+  func testICCListHumanUsesAlignedColumnsAndPathLast() {
+    let commands = ICCCommands(context: OMDCLIContext(core: FakeCore(), isTTY: false))
+
+    let result = commands.list(json: false)
+
+    XCTAssertEqual(result.exitCode, .success)
+    assertPlainTable(
+      result.stdout,
+      equals: """
+        name               path
+        Display P3         /Library/ColorSync/Profiles/Display P3.icc
+        sRGB IEC61966-2.1  /System/Library/ColorSync/Profiles/sRGB Profile.icc
+
+        """)
+  }
+
+  func testICCListJSONUsesNameAndPath() throws {
+    let core = FakeCore()
+    let commands = ICCCommands(context: OMDCLIContext(core: core, isTTY: false))
+
+    let result = commands.list(json: true)
+    let profiles = try jsonArray(result.stdout)
+
+    XCTAssertEqual(result.exitCode, .success)
+    XCTAssertEqual(profiles.first?["name"] as? String, "Display P3")
+    XCTAssertEqual(
+      profiles.first?["path"] as? String,
+      "/Library/ColorSync/Profiles/Display P3.icc")
+    XCTAssertEqual(core.callLog, ["listICCProfiles"])
+  }
+
   func testResolutionModesHumanUsesAlignedColumnsAndModeLast() {
     let commands = DisplayCommands(context: OMDCLIContext(core: FakeCore(), isTTY: false))
 
@@ -1111,6 +1142,7 @@ final class DisplayCommandsTests: XCTestCase {
   func testHelpSurfaceListsCurrentDisplayCommandsAndSetOptions() {
     let rootHelp = OMDCommand.helpMessage()
     let displayHelp = Display.helpMessage()
+    let iccHelp = ICC.helpMessage()
     let setHelp = DisplaySet.helpMessage()
 
     XCTAssertEqual(
@@ -1125,6 +1157,7 @@ final class DisplayCommandsTests: XCTestCase {
 
       SUBCOMMANDS:
         display                 Read and set display properties.
+        icc                     List installed ICC profiles.
         version
 
         See 'omd help <subcommand>' for detailed help.
@@ -1147,6 +1180,21 @@ final class DisplayCommandsTests: XCTestCase {
         set
 
         See 'display help <subcommand>' for detailed help.
+      """)
+    XCTAssertEqual(
+      iccHelp,
+      """
+      OVERVIEW: List installed ICC profiles.
+
+      USAGE: icc <subcommand>
+
+      OPTIONS:
+        -h, --help              Show help information.
+
+      SUBCOMMANDS:
+        list
+
+        See 'icc help <subcommand>' for detailed help.
       """)
     XCTAssertEqual(
       setHelp,
@@ -1241,6 +1289,14 @@ private final class FakeCore: DisplayClient, @unchecked Sendable {
   var displayModeResult: DisplaySetResult = .applied("displayMode")
   var ditheringResult: DisplaySetResult = .noOp()
   var iccResult: DisplaySetResult = .noOp()
+  var iccProfiles: [ICCProfile] = [
+    ICCProfile(
+      name: "Display P3",
+      url: URL(fileURLWithPath: "/Library/ColorSync/Profiles/Display P3.icc")),
+    ICCProfile(
+      name: "sRGB IEC61966-2.1",
+      url: URL(fileURLWithPath: "/System/Library/ColorSync/Profiles/sRGB Profile.icc")),
+  ]
   var resolutionSetCalls: [ResolutionModeID] = []
   var displayModeSetCalls: [DisplayModeID] = []
   var callLog: [String] = []
@@ -1349,6 +1405,11 @@ private final class FakeCore: DisplayClient, @unchecked Sendable {
       throw setDitheringError
     }
     return ditheringResult
+  }
+
+  func listICCProfiles() throws -> [ICCProfile] {
+    callLog.append("listICCProfiles")
+    return iccProfiles
   }
 
   func setICCProfile(_ display: DisplaySelector, profileURL: URL) throws -> DisplaySetResult {

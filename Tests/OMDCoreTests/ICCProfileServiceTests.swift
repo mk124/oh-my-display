@@ -103,6 +103,18 @@ final class ICCProfileServiceTests: XCTestCase {
     XCTAssertEqual(axis.source, "fake readback")
   }
 
+  func testInstalledProfileParserUsesDescriptionAndURL() {
+    let target = "/tmp/display p3.icc"
+    let info = [
+      kColorSyncProfileDescription.takeUnretainedValue() as String: "Display P3",
+      kColorSyncProfileURL.takeUnretainedValue() as String: target,
+    ] as CFDictionary
+
+    let profile = LiveICCProfileBackend.installedProfile(from: info)
+
+    XCTAssertEqual(profile, ICCProfile(name: "Display P3", url: URL(fileURLWithPath: target)))
+  }
+
   func testDeviceInfoParserPrefersCustomDefaultProfileDirectURL() {
     let target = profile("custom.icc")
     let info: [String: Any] = [
@@ -263,6 +275,10 @@ final class FakeICCProfileBackend: ICCProfileBackend, @unchecked Sendable {
 
   func isReadableProfile(_ url: URL) -> Bool {
     isReadable
+  }
+
+  func installedProfiles() throws -> [ICCProfile] {
+    []
   }
 
   func deviceID(for displayID: CGDirectDisplayID) -> ICCDisplayDeviceID? {

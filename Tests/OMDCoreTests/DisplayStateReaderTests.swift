@@ -255,6 +255,10 @@ private struct FakeStateICCProfileBackend: ICCProfileBackend {
     true
   }
 
+  func installedProfiles() throws -> [ICCProfile] {
+    []
+  }
+
   func deviceID(for displayID: CGDirectDisplayID) -> ICCDisplayDeviceID? {
     nil
   }

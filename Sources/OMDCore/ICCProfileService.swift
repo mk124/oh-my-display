@@ -29,6 +29,24 @@ struct ICCProfileService: Sendable {
     return .unreadable(source: "ColorSync profile URL unavailable")
   }
 
+  func listICCProfiles() throws -> [ICCProfile] {
+    var profilesByPath: [String: ICCProfile] = [:]
+    for profile in try backend.installedProfiles() {
+      let path = profile.url.standardizedFileURL.path
+      if profilesByPath[path] == nil {
+        profilesByPath[path] = profile
+      }
+    }
+    return profilesByPath.values.sorted { lhs, rhs in
+      let nameOrder = lhs.name.localizedStandardCompare(rhs.name)
+      if nameOrder != .orderedSame {
+        return nameOrder == .orderedAscending
+      }
+      return lhs.url.standardizedFileURL.path.localizedStandardCompare(
+        rhs.url.standardizedFileURL.path) == .orderedAscending
+    }
+  }
+
   func setICCProfile(_ selector: DisplaySelector, profileURL: URL) throws -> DisplaySetResult
   {
     let resolved: ResolvedDisplay
@@ -75,6 +93,7 @@ struct ICCProfileReadback: Sendable {
 
 protocol ICCProfileBackend: Sendable {
   func isReadableProfile(_ url: URL) -> Bool
+  func installedProfiles() throws -> [ICCProfile]
   func deviceID(for displayID: CGDirectDisplayID) -> ICCDisplayDeviceID?
   func profile(for deviceID: ICCDisplayDeviceID) -> ICCProfileReadback?
   func setCustomProfile(_ profileURL: URL, for deviceID: ICCDisplayDeviceID) -> Bool
@@ -84,6 +103,38 @@ protocol ICCProfileBackend: Sendable {
 struct LiveICCProfileBackend: ICCProfileBackend {
   func isReadableProfile(_ url: URL) -> Bool {
     FileManager.default.isReadableFile(atPath: url.path)
+  }
+
+  func installedProfiles() throws -> [ICCProfile] {
+    let collector = ICCProfileCollector()
+    var seed: UInt32 = 0
+    var error: Unmanaged<CFError>?
+    let options = [
+      kColorSyncWaitForCacheReply.takeUnretainedValue() as String: kCFBooleanTrue as Any
+    ] as CFDictionary
+
+    ColorSyncIterateInstalledProfilesWithOptions(
+      { profileInfo, userInfo in
+        guard let profileInfo, let userInfo else {
+          return true
+        }
+        let collector = Unmanaged<ICCProfileCollector>.fromOpaque(userInfo).takeUnretainedValue()
+        if let profile = LiveICCProfileBackend.installedProfile(from: profileInfo) {
+          collector.profiles.append(profile)
+        }
+        return true
+      },
+      &seed,
+      Unmanaged.passUnretained(collector).toOpaque(),
+      options,
+      &error
+    )
+
+    if let error {
+      throw DisplayControlError.unexpected(
+        "ColorSync profile iteration failed: \(error.takeRetainedValue())")
+    }
+    return collector.profiles
   }
 
   func deviceID(for displayID: CGDirectDisplayID) -> ICCDisplayDeviceID? {
@@ -128,6 +179,24 @@ struct LiveICCProfileBackend: ICCProfileBackend {
       return ICCProfileReadback(url: url, source: "ColorSync factory profile")
     }
     return nil
+  }
+
+  static func installedProfile(from info: CFDictionary) -> ICCProfile? {
+    let dictionary = info as NSDictionary
+    let urlKey = kColorSyncProfileURL.takeUnretainedValue()
+    guard let url = profileURLValue(dictionary[urlKey]) else {
+      return nil
+    }
+
+    let descriptionKey = kColorSyncProfileDescription.takeUnretainedValue()
+    let rawName = (dictionary[descriptionKey] as? String)?
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+    let name = rawName.flatMap { $0.isEmpty ? nil : $0 }
+      ?? url.deletingPathExtension().lastPathComponent
+    return ICCProfile(
+      name: name,
+      url: url
+    )
   }
 
   static func customProfileURL(from info: [String: Any]) -> URL? {
@@ -191,15 +260,19 @@ struct LiveICCProfileBackend: ICCProfileBackend {
     if value == nil || value is NSNull {
       return nil
     }
-    if CFGetTypeID(value as CFTypeRef) == CFNullGetTypeID() {
-      return nil
-    }
     if let url = value as? URL {
       return url
     }
-    if let urlString = value as? String {
-      return URL(string: urlString) ?? URL(fileURLWithPath: urlString)
+    if let path = value as? String, !path.isEmpty {
+      if path.hasPrefix("file://"), let url = URL(string: path) {
+        return url
+      }
+      return URL(fileURLWithPath: path)
     }
     return nil
   }
+}
+
+private final class ICCProfileCollector {
+  var profiles: [ICCProfile] = []
 }

@@ -105,6 +105,16 @@ public struct DisplayListResult<Item: Codable & Equatable & Sendable>: Codable, 
   }
 }
 
+public struct ICCProfile: Codable, Equatable, Sendable {
+  public var name: String
+  public var url: URL
+
+  public init(name: String, url: URL) {
+    self.name = name
+    self.url = url
+  }
+}
+
 public enum DisplayEncoding: String, Codable, Sendable {
   case none
   case rgb

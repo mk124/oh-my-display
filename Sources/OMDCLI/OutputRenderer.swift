@@ -95,6 +95,20 @@ enum OutputRenderer {
     })
   }
 
+  static func renderICCProfiles(_ profiles: [ICCProfile], json: Bool) throws -> String {
+    if json {
+      return try encode(profiles.map(ICCProfileOutput.init))
+    }
+    return renderTable(
+      headers: ["name", "path"],
+      rows: profiles.map { profile in
+        [
+          profile.name,
+          profile.url.standardizedFileURL.path,
+        ]
+      })
+  }
+
   static func renderOperations(_ operations: [OperationReport], json: Bool) throws -> String {
     if json {
       return try encode(operations)
@@ -387,5 +401,15 @@ private struct DisplayModesOutput: Codable {
     self.readability = result.readability
     self.reason = result.reason
     self.modes = result.items
+  }
+}
+
+private struct ICCProfileOutput: Codable {
+  var name: String
+  var path: String
+
+  init(_ profile: ICCProfile) {
+    self.name = profile.name
+    self.path = profile.url.standardizedFileURL.path
   }
 }

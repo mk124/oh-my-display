@@ -40,6 +40,10 @@ public func setDithering(_ display: DisplaySelector, enabled: Bool) throws -> Di
   try DitheringService().setDithering(display, enabled: enabled)
 }
 
+public func listICCProfiles() throws -> [ICCProfile] {
+  try ICCProfileService().listICCProfiles()
+}
+
 public func setICCProfile(_ display: DisplaySelector, profileURL: URL) throws -> DisplaySetResult {
   try ICCProfileService().setICCProfile(display, profileURL: profileURL)
 }
