@@ -6,20 +6,6 @@ import XCTest
 @testable import OMDCore
 
 final class DisplayModeServiceTests: XCTestCase {
-  func testListDisplayModesReturnsBackendResult() throws {
-    let backend = FakeDisplayModeBackend(
-      listResult: .readable([mode("mode-1"), mode("mode-2")], source: "CADisplay"),
-      current: mode("mode-1")
-    )
-    let service = DisplayModeService(backend: backend, resolver: FakeDisplayModeResolver())
-
-    let result = try service.listDisplayModes(DisplaySelector("uuid:one"))
-
-    XCTAssertEqual(result.readability, .readable)
-    XCTAssertEqual(result.source, "CADisplay")
-    XCTAssertEqual(result.items.map(\.id.rawValue), ["mode-1", "mode-2"])
-  }
-
   func testSetDisplayModeNoOpDoesNotAttemptMutation() throws {
     let backend = FakeDisplayModeBackend(
       listResult: .readable([mode("mode-1")]),

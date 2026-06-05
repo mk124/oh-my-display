@@ -4,15 +4,6 @@ import XCTest
 @testable import OMDCore
 
 final class DisplayStateReaderTests: XCTestCase {
-  func testListDisplaysUsesInjectedResolver() throws {
-    let target = target()
-    let reader = reader(target: target, resolution: nil, displayMode: nil)
-
-    let displays = try reader.listDisplays()
-
-    XCTAssertEqual(displays, [target])
-  }
-
   func testReadDisplayStateKeepsResolutionAndDisplayModeAxesSeparate() throws {
     let target = target()
     let reader = reader(

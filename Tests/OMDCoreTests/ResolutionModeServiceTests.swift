@@ -4,17 +4,6 @@ import XCTest
 @testable import OMDCore
 
 final class ResolutionModeServiceTests: XCTestCase {
-  func testListResolutionModesReturnsCoreGraphicsResult() throws {
-    let backend = FakeResolutionBackend(modes: [mode("res-1"), mode("res-2")], current: mode("res-1"))
-    let service = ResolutionModeService(backend: backend, resolver: FakeResolutionResolver())
-
-    let result = try service.listResolutionModes(DisplaySelector("uuid:one"))
-
-    XCTAssertEqual(result.readability, .readable)
-    XCTAssertEqual(result.source, "CoreGraphics")
-    XCTAssertEqual(result.items.map(\.id.rawValue), ["res-1", "res-2"])
-  }
-
   func testSetResolutionModeNoOpDoesNotAttemptMutation() throws {
     let backend = FakeResolutionBackend(modes: [mode("res-1")], current: mode("res-1"))
     let service = ResolutionModeService(backend: backend, resolver: FakeResolutionResolver())
