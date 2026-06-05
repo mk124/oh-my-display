@@ -1,12 +1,13 @@
 import Foundation
+import OMDCore
 
 struct OMDCLIContext: Sendable {
-  var core: OMDCoreClient
+  var core: any DisplayClient
   var isTTY: Bool
   var prompt: (@Sendable (String) -> Bool)?
 
   init(
-    core: OMDCoreClient = LiveOMDCoreClient(),
+    core: any DisplayClient = LiveDisplayClient(),
     isTTY: Bool = true,
     prompt: (@Sendable (String) -> Bool)? = nil
   ) {

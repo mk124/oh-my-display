@@ -1175,7 +1175,7 @@ final class DisplayCommandsTests: XCTestCase {
   }
 }
 
-private final class FakeCore: OMDCoreClient, @unchecked Sendable {
+private final class FakeCore: DisplayClient, @unchecked Sendable {
   let res1920HiDPI = ResolutionMode(
     id: ResolutionModeID("res-1920-hidpi"),
     logicalResolution: DisplaySize(width: 1920, height: 1080),
