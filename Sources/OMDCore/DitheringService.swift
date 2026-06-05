@@ -157,21 +157,17 @@ struct LiveDitheringBackend: DitheringBackend {
       return nil
     }
 
-    var unmanaged: Unmanaged<CFMutableDictionary>?
-    guard
-      IORegistryEntryCreateCFProperties(service, &unmanaged, kCFAllocatorDefault, 0)
-        == KERN_SUCCESS,
-      let properties = unmanaged?.takeRetainedValue() as? [String: Any]
-    else {
-      return nil
-    }
-
     return DitheringFramebuffer(
       registryID: registryID,
-      isExternal: boolProperty(properties["external"]),
-      isActive: boolProperty(properties["NormalModeActive"]) ?? false,
-      enableDither: boolProperty(properties["enableDither"])
+      isExternal: boolProperty(property("external", from: service)),
+      isActive: boolProperty(property("NormalModeActive", from: service)) ?? false,
+      enableDither: boolProperty(property("enableDither", from: service))
     )
+  }
+
+  private func property(_ key: String, from service: io_service_t) -> Any? {
+    IORegistryEntryCreateCFProperty(service, key as CFString, kCFAllocatorDefault, 0)?
+      .takeRetainedValue()
   }
 
   private func withFramebufferService<T>(registryID: UInt64, _ body: (io_service_t) -> T) -> T? {
