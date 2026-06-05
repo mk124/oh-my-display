@@ -1,4 +1,6 @@
 import ApplicationServices
+import AppKit
+@preconcurrency import ColorSync
 import CoreGraphics
 import Foundation
 
@@ -65,13 +67,40 @@ struct DisplayResolver: Sendable {
   }
 
   static func label(for displayID: CGDirectDisplayID) -> String {
-    if let name = displayNameFromIOKit(displayID: displayID), !name.isEmpty {
+    if let name = localizedName(for: displayID), !name.isEmpty {
+      return name
+    }
+    if let name = colorSyncLabel(for: displayID) {
+      return name
+    }
+    if let name = hardwareLabel(for: displayID) {
       return name
     }
     return "Display \(displayID)"
   }
 
-  private static func displayNameFromIOKit(displayID: CGDirectDisplayID) -> String? {
+  private static func localizedName(for displayID: CGDirectDisplayID) -> String? {
+    let screenNumberKey = NSDeviceDescriptionKey("NSScreenNumber")
+    return NSScreen.screens.first { screen in
+      (screen.deviceDescription[screenNumberKey] as? NSNumber)?.uint32Value == displayID
+    }?.localizedName
+  }
+
+  private static func colorSyncLabel(for displayID: CGDirectDisplayID) -> String? {
+    guard let uuid = CGDisplayCreateUUIDFromDisplayID(displayID)?.takeRetainedValue(),
+      let info = ColorSyncDeviceCopyDeviceInfo(
+        kColorSyncDisplayDeviceClass.takeUnretainedValue(),
+        uuid
+      )?.takeRetainedValue() as? [String: Any]
+    else {
+      return nil
+    }
+    let key = kColorSyncDeviceDescription.takeUnretainedValue() as String
+    let name = (info[key] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+    return name.flatMap { $0.isEmpty ? nil : $0 }
+  }
+
+  private static func hardwareLabel(for displayID: CGDirectDisplayID) -> String? {
     let vendor = CGDisplayVendorNumber(displayID)
     let model = CGDisplayModelNumber(displayID)
     if vendor != 0 || model != 0 {

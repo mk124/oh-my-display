@@ -27,6 +27,7 @@ let package = Package(
       name: "OMDCore",
       dependencies: ["OMDQuartzBridge"],
       linkerSettings: [
+        .linkedFramework("AppKit"),
         .linkedFramework("CoreGraphics"),
         .linkedFramework("ColorSync"),
         .linkedFramework("IOKit"),
