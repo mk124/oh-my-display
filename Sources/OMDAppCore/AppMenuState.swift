@@ -39,6 +39,8 @@ package struct ResolutionMenuItem: Equatable, Sendable {
   package var title: String
   package var isSelected: Bool
   package var isEnabled = true
+  package var badgeText: String?
+  package var isNative = false
 }
 
 package struct DisplayModeMenuItem: Equatable, Sendable {

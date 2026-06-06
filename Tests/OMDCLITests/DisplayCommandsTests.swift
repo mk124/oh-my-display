@@ -279,7 +279,7 @@ final class DisplayCommandsTests: XCTestCase {
 
     XCTAssertEqual(resolutions["readability"] as? String, "readable")
     XCTAssertEqual(displayModes["readability"] as? String, "readable")
-    XCTAssertEqual(Set(resolutionMode.keys), ["id", "logicalResolution", "backingResolution", "scaleFactor", "isHiDPI", "refreshHz"])
+    XCTAssertEqual(Set(resolutionMode.keys), ["id", "logicalResolution", "backingResolution", "scaleFactor", "isHiDPI", "refreshHz", "isNativeTiming"])
     XCTAssertEqual(
       Set(displayMode.keys),
       ["id", "outputTimingResolution", "outputTimingRefreshHz", "bitDepth", "encoding", "range", "chroma", "hdrMode", "isVirtual", "isVRR", "isHighBandwidth"])

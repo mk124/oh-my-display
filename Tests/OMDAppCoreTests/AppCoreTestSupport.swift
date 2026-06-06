@@ -210,7 +210,8 @@ extension ResolutionMode {
     logical: (Int, Int),
     backing: (Int, Int),
     hidpi: Bool,
-    hz: Double?
+    hz: Double?,
+    native: Bool = false
   ) -> ResolutionMode {
     ResolutionMode(
       id: ResolutionModeID(id),
@@ -218,7 +219,8 @@ extension ResolutionMode {
       backingResolution: DisplaySize(width: backing.0, height: backing.1),
       scaleFactor: hidpi ? 2 : 1,
       isHiDPI: hidpi,
-      refreshHz: hz)
+      refreshHz: hz,
+      isNativeTiming: native)
   }
 }
 

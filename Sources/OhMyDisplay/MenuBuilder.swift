@@ -143,7 +143,11 @@ extension AppDelegate {
     if items.isEmpty {
       submenu.addItem(disabledItem("Unknown"))
     }
-    for facetItem in items {
+    for (index, facetItem) in items.enumerated() {
+      // Native-pinned items sort first; one separator marks the native boundary.
+      if index > 0, items[index - 1].isNative, !facetItem.isNative {
+        submenu.addItem(.separator())
+      }
       let menuItem: NSMenuItem
       if let modeID = facetItem.id, facetItem.isEnabled {
         menuItem = NSMenuItem(
@@ -156,6 +160,9 @@ extension AppDelegate {
           modeID: modeID)
       } else {
         menuItem = disabledItem(facetItem.title)
+      }
+      if let badgeText = facetItem.badgeText {
+        menuItem.badge = NSMenuItemBadge(string: badgeText)
       }
       menuItem.state = facetItem.isSelected ? .on : .off
       submenu.addItem(menuItem)

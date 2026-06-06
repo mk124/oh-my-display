@@ -155,14 +155,20 @@ public struct ResolutionMode: Codable, Equatable, Sendable {
   public var scaleFactor: Double
   public var isHiDPI: Bool
   public var refreshHz: Double?
+  // Driver-flagged native panel timing (CGDisplayMode ioFlags, kDisplayModeNativeFlag).
+  public var isNativeTiming: Bool
 
-  public init(id: ResolutionModeID, logicalResolution: DisplaySize, backingResolution: DisplaySize, scaleFactor: Double, isHiDPI: Bool, refreshHz: Double?) {
+  public init(
+    id: ResolutionModeID, logicalResolution: DisplaySize, backingResolution: DisplaySize, scaleFactor: Double, isHiDPI: Bool, refreshHz: Double?,
+    isNativeTiming: Bool = false
+  ) {
     self.id = id
     self.logicalResolution = logicalResolution
     self.backingResolution = backingResolution
     self.scaleFactor = scaleFactor
     self.isHiDPI = isHiDPI
     self.refreshHz = refreshHz
+    self.isNativeTiming = isNativeTiming
   }
 }
 

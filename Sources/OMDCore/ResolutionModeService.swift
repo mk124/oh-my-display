@@ -100,8 +100,10 @@ struct LiveResolutionModeBackend: ResolutionModeBackend {
       let duplicate = seen[baseID] ?? 0
       seen[baseID] = duplicate + 1
       let id = duplicate == 0 ? baseID : "\(baseID)-\(duplicate + 1)"
+      // 0x0200_0000 = kDisplayModeNativeFlag (IOKit/IOGraphicsTypes.h).
       return ResolutionMode(
-        id: ResolutionModeID(id), logicalResolution: logical, backingResolution: backing, scaleFactor: scale, isHiDPI: scale > 1.01, refreshHz: refresh)
+        id: ResolutionModeID(id), logicalResolution: logical, backingResolution: backing, scaleFactor: scale, isHiDPI: scale > 1.01, refreshHz: refresh,
+        isNativeTiming: mode.ioFlags & 0x0200_0000 != 0)
     }
   }
 
