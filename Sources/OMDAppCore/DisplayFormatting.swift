@@ -185,6 +185,23 @@ func displayModeTitle(_ mode: DisplayMode) -> String {
   ].compactMap { $0 }.joined(separator: " ")
 }
 
+func displayModeMenuTitle(_ mode: DisplayMode) -> String {
+  let encoding = mode.encoding.technicalLabel
+  let bpc = mode.bitDepth.map { "\($0)-bit" }
+  let range = mode.range == .unknown ? nil : mode.range.rawValue
+  let chroma = mode.chroma == .none ? nil : mode.chroma.rawValue
+  let vrr = mode.isVRR ? "VRR" : nil
+
+  return [
+    mode.hdrMode.label,
+    encoding.isEmpty ? nil : encoding,
+    bpc,
+    range,
+    chroma,
+    vrr,
+  ].compactMap { $0 }.joined(separator: " ")
+}
+
 func iccProfileTitles(_ profiles: [ICCProfile]) -> [URL: String] {
   let sorted = profiles.sorted {
     let lhs = ICCProfileIdentity.sortKey($0.url)

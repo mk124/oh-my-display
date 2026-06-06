@@ -47,7 +47,7 @@ extension OMDAppCore {
     return DisplayMenuState(
       display: display,
       title: display.label,
-      currentTitle: "Current: \(currentTitle)",
+      currentTitle: "Profile: \(currentTitle)",
       currentItems: currentItems,
       profileItems: profileItems,
       resolutionItems: resolutionItems,
@@ -96,7 +96,7 @@ extension OMDAppCore {
     return modes.sorted(by: displayModeSort).map { mode in
       DisplayModeMenuItem(
         id: mode.id,
-        title: displayModeTitle(mode),
+        title: displayModeMenuTitle(mode),
         isSelected: mode.id == readableValue(state.currentDisplayModeID))
     }
   }

@@ -32,7 +32,7 @@ final class ProfileTests: XCTestCase {
     let display = try XCTUnwrap(menu.displays.first)
 
     XCTAssertEqual(display.title, "One")
-    XCTAssertEqual(display.currentTitle, "Current: Off")
+    XCTAssertEqual(display.currentTitle, "Profile: Off")
     XCTAssertEqual(display.currentItems.map(\.title), ["Off"])
     XCTAssertTrue(display.currentItems[0].isSelected)
     XCTAssertTrue(display.profileItems.isEmpty)
@@ -84,7 +84,7 @@ final class ProfileTests: XCTestCase {
 
     let display = try XCTUnwrap(fixture.core.menuState().displays.first)
     XCTAssertEqual(display.title, "One")
-    XCTAssertEqual(display.currentTitle, "Current: #1 My HDR Profile")
+    XCTAssertEqual(display.currentTitle, "Profile: #1 My HDR Profile")
     XCTAssertEqual(display.currentItems.map(\.title), ["Off", "#1 My HDR Profile"])
     XCTAssertEqual(display.profileItems.map(\.title), ["#1 My HDR Profile"])
     XCTAssertFalse(display.currentTitle.contains("HDR10"))
@@ -138,6 +138,7 @@ final class ProfileTests: XCTestCase {
     let display = try XCTUnwrap(fixture.core.menuState().displays.first)
 
     XCTAssertEqual(display.displayModeItems.map { $0.id.rawValue }, ["mode-4k-60-rgb10"])
+    XCTAssertEqual(display.displayModeItems.map(\.title), ["HDR10 RGB 10-bit full"])
   }
 
   func testDirectDisplayModeSettingPersistsOnlyWhenCurrentProfileIsOn() throws {
