@@ -44,6 +44,10 @@ public func listICCProfiles() throws -> [ICCProfile] {
   try ICCProfileService().listICCProfiles()
 }
 
+public func listDisplayAssignableICCProfiles() throws -> [ICCProfile] {
+  try ICCProfileService().listDisplayAssignableICCProfiles()
+}
+
 public func setICCProfile(_ display: DisplaySelector, profileURL: URL) throws -> DisplaySetResult {
   try ICCProfileService().setICCProfile(display, profileURL: profileURL)
 }

@@ -56,6 +56,24 @@ final class ICCProfileServiceTests: XCTestCase {
     XCTAssertEqual(backend.waitCount, 0)
   }
 
+  func testSetICCProfileTreatsSymlinkReadbackAsSameFile() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let realURL = directory.appendingPathComponent("target.icc")
+    let linkURL = directory.appendingPathComponent("linked.icc")
+    FileManager.default.createFile(atPath: realURL.path, contents: Data("icc".utf8))
+    try FileManager.default.createSymbolicLink(at: linkURL, withDestinationURL: realURL)
+    let backend = FakeICCProfileBackend(readbacks: [
+      ICCProfileReadback(url: linkURL, source: "fake readback")
+    ])
+    let service = ICCProfileService(resolver: FakeResolver(), backend: backend)
+
+    let result = try service.setICCProfile(DisplaySelector("uuid:one"), profileURL: realURL)
+
+    XCTAssertEqual(result.status, .applied)
+  }
+
   func testSetICCProfileReturnsAppliedWhenDelayedReadbackMatches() throws {
     let target = profile("target.icc")
     let backend = FakeICCProfileBackend(readbacks: [
@@ -113,6 +131,18 @@ final class ICCProfileServiceTests: XCTestCase {
     let profile = LiveICCProfileBackend.installedProfile(from: info)
 
     XCTAssertEqual(profile, ICCProfile(name: "Display P3", url: URL(fileURLWithPath: target)))
+  }
+
+  func testListDisplayAssignableICCProfilesUsesBackendDisplayListOnly() throws {
+    let display = ICCProfile(name: "Display", url: profile("display.icc"))
+    let printer = ICCProfile(name: "Printer", url: profile("printer.icc"))
+    let backend = FakeICCProfileBackend(
+      profiles: [display, printer],
+      displayProfiles: [display])
+    let service = ICCProfileService(resolver: FakeResolver(), backend: backend)
+
+    XCTAssertEqual(try service.listICCProfiles(), [display, printer])
+    XCTAssertEqual(try service.listDisplayAssignableICCProfiles(), [display])
   }
 
   func testDeviceInfoParserPrefersCustomDefaultProfileDirectURL() {
@@ -258,6 +288,8 @@ final class FakeICCProfileBackend: ICCProfileBackend, @unchecked Sendable {
   var fakeDeviceID: ICCDisplayDeviceID?
   var setResult: Bool
   var readbacks: [ICCProfileReadback?]
+  var profiles: [ICCProfile]
+  var displayProfiles: [ICCProfile]
   var setProfileURLs: [URL] = []
   var waitCount = 0
 
@@ -265,12 +297,16 @@ final class FakeICCProfileBackend: ICCProfileBackend, @unchecked Sendable {
     isReadable: Bool = true,
     deviceID: ICCDisplayDeviceID? = ICCDisplayDeviceID(rawValue: CFUUIDCreate(kCFAllocatorDefault)),
     setResult: Bool = true,
-    readbacks: [ICCProfileReadback?] = []
+    readbacks: [ICCProfileReadback?] = [],
+    profiles: [ICCProfile] = [],
+    displayProfiles: [ICCProfile] = []
   ) {
     self.isReadable = isReadable
     self.fakeDeviceID = deviceID
     self.setResult = setResult
     self.readbacks = readbacks
+    self.profiles = profiles
+    self.displayProfiles = displayProfiles
   }
 
   func isReadableProfile(_ url: URL) -> Bool {
@@ -278,7 +314,11 @@ final class FakeICCProfileBackend: ICCProfileBackend, @unchecked Sendable {
   }
 
   func installedProfiles() throws -> [ICCProfile] {
-    []
+    profiles
+  }
+
+  func installedDisplayProfiles() throws -> [ICCProfile] {
+    displayProfiles
   }
 
   func deviceID(for displayID: CGDirectDisplayID) -> ICCDisplayDeviceID? {

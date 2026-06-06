@@ -8,6 +8,7 @@ struct DisplayPayload {
 
 struct CurrentPayload {
   var display: DisplaySelector
+  var displayName: String
   var profileID: UUID
 }
 
@@ -25,6 +26,19 @@ struct ResolutionPayload {
 struct DisplayModePayload {
   var display: DisplaySelector
   var modeID: DisplayModeID
+}
+
+struct DitheringPayload {
+  var display: DisplaySelector
+  var displayName: String
+  var enabled: Bool
+}
+
+struct ICCProfilePayload {
+  var display: DisplaySelector
+  var displayName: String
+  var url: URL
+  var title: String
 }
 
 struct MutationOutcome {

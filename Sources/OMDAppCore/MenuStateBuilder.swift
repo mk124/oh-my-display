@@ -9,13 +9,16 @@ extension OMDAppCore {
       }
       return lhs.offset < rhs.offset
     }.map(\.element)
+    let iccProfiles = orderedDisplays.isEmpty
+      ? nil
+      : try? client.listDisplayAssignableICCProfiles()
     return AppMenuState(
       displays: orderedDisplays.map { display in
-        makeDisplayMenu(display: display)
+        makeDisplayMenu(display: display, iccProfiles: iccProfiles)
       })
   }
 
-  func makeDisplayMenu(display: DisplayTarget) -> DisplayMenuState {
+  func makeDisplayMenu(display: DisplayTarget, iccProfiles: [ICCProfile]?) -> DisplayMenuState {
     let record = record(for: display.selector)
     let currentProfile = record.flatMap(currentProfile(in:))
     let currentTitle = currentProfile?.label ?? "Off"
@@ -23,6 +26,8 @@ extension OMDAppCore {
     let state = try? client.readDisplayState(display.selector)
     let resolutionItems = state.flatMap { try? makeResolutionItems(for: display.selector, state: $0) } ?? []
     let displayModeItems = state.flatMap { try? makeDisplayModeItems(for: display.selector, state: $0) } ?? []
+    let ditheringItems = makeDitheringItems(state: state)
+    let iccProfileItems = makeICCProfileItems(state: state, profiles: iccProfiles)
     let profiles = record?.profiles.sorted { $0.ordinal < $1.ordinal } ?? []
     let currentItems = [
       CurrentProfileMenuItem(
@@ -47,6 +52,9 @@ extension OMDAppCore {
       profileItems: profileItems,
       resolutionItems: resolutionItems,
       displayModeItems: displayModeItems,
+      ditheringItems: ditheringItems.items,
+      isDitheringEnabled: ditheringItems.isEnabled,
+      iccProfileItems: iccProfileItems,
       degradedReason: degradedReason
     )
   }
@@ -112,6 +120,40 @@ extension OMDAppCore {
         return true
       }
       return approximatelyEqual(modeRefresh, refresh)
+    }
+  }
+
+  func makeDitheringItems(state: DisplayState?) -> (items: [DitheringMenuItem], isEnabled: Bool) {
+    let current = state.flatMap { readableValue($0.ditheringEnabled) }
+    return (
+      [
+        DitheringMenuItem(enabled: false, title: "Off", isSelected: current == false),
+        DitheringMenuItem(enabled: true, title: "On", isSelected: current == true),
+      ],
+      state?.ditheringAvailability.canSet ?? true
+    )
+  }
+
+  func makeICCProfileItems(state: DisplayState?, profiles: [ICCProfile]?) -> [ICCProfileMenuItem] {
+    guard let profiles else {
+      return [ICCProfileMenuItem(url: nil, title: "Unavailable", isEnabled: false)]
+    }
+
+    let titles = iccProfileTitles(profiles)
+    let current = state.flatMap { readableValue($0.iccProfileURL) }
+    return profiles.sorted {
+      let lhs = titles[$0.url] ?? $0.name
+      let rhs = titles[$1.url] ?? $1.name
+      if lhs != rhs {
+        return lhs.localizedStandardCompare(rhs) == .orderedAscending
+      }
+      return ICCProfileIdentity.sortKey($0.url).localizedStandardCompare(
+        ICCProfileIdentity.sortKey($1.url)) == .orderedAscending
+    }.map { profile in
+      ICCProfileMenuItem(
+        url: profile.url,
+        title: titles[profile.url] ?? profile.name,
+        isSelected: current.map { ICCProfileIdentity.sameFile($0, profile.url) } ?? false)
     }
   }
 }

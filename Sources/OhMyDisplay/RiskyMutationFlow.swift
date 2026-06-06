@@ -42,7 +42,8 @@ extension AppDelegate {
         if !restoreResult.succeeded {
           showError(
             AppMenuError(
-              "Mutation failed: \(outcome.summary). Restore failed: \(restoreResult.summary)"))
+              "Mutation failed: \(outcome.summary). Restore failed: \(restoreResult.summary). \(core.turnCurrentOff(for: display).message)"
+            ))
           rebuildMenu()
           return
         }
@@ -56,7 +57,10 @@ extension AppDelegate {
       suppressOwnEvents()
       let restoreResult = try restore(core, baseline)
       if !restoreResult.succeeded {
-        showError(AppMenuError("Restore failed: \(restoreResult.summary)"))
+        showError(
+          AppMenuError(
+            "Restore failed: \(restoreResult.summary). \(core.turnCurrentOff(for: display).message)"
+          ))
       }
       rebuildMenu()
       return
@@ -74,7 +78,8 @@ extension AppDelegate {
       } else {
         showError(
           AppMenuError(
-            "Keep failed: \(error). Restore failed: \(restoreResult.summary)"))
+            "Keep failed: \(error). Restore failed: \(restoreResult.summary). \(core.turnCurrentOff(for: display).message)"
+          ))
       }
       rebuildMenu()
       return
@@ -93,9 +98,11 @@ extension AppDelegate {
       if restoreResult.succeeded {
         return "Mutation failed: \(originalError). Previous display state was restored."
       }
-      return "Mutation failed: \(originalError). Restore failed: \(restoreResult.summary)"
+      return "Mutation failed: \(originalError). Restore failed: \(restoreResult.summary). "
+        + core.turnCurrentOff(for: baseline.display).message
     } catch {
-      return "Mutation failed: \(originalError). Restore threw: \(error)"
+      return "Mutation failed: \(originalError). Restore threw: \(error). "
+        + core.turnCurrentOff(for: baseline.display).message
     }
   }
 

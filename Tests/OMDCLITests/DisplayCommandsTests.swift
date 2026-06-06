@@ -1453,6 +1453,11 @@ private final class FakeCore: DisplayClient, @unchecked Sendable {
     return iccProfiles
   }
 
+  func listDisplayAssignableICCProfiles() throws -> [ICCProfile] {
+    callLog.append("listDisplayAssignableICCProfiles")
+    return iccProfiles
+  }
+
   func setICCProfile(_ display: DisplaySelector, profileURL: URL) throws -> DisplaySetResult {
     callLog.append("setICC:\(profileURL.lastPathComponent)")
     if let setICCError {

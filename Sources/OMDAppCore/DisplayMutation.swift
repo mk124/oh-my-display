@@ -30,6 +30,30 @@ extension OMDAppCore {
     return result
   }
 
+  package func setDithering(
+    _ enabled: Bool,
+    for display: DisplaySelector,
+    persistToCurrentProfile: Bool = true
+  ) throws -> DisplaySetResult {
+    let result = try client.setDithering(display, enabled: enabled)
+    if result.isSuccessful && persistToCurrentProfile {
+      try refreshCurrentProfileDithering(for: display, enabled: enabled)
+    }
+    return result
+  }
+
+  package func setICCProfile(
+    _ profileURL: URL,
+    for display: DisplaySelector,
+    persistToCurrentProfile: Bool = true
+  ) throws -> DisplaySetResult {
+    let result = try client.setICCProfile(display, profileURL: profileURL)
+    if result.isSuccessful && persistToCurrentProfile {
+      try refreshCurrentProfileICC(for: display, profileURL: profileURL)
+    }
+    return result
+  }
+
   package func captureMutationBaseline(for display: DisplaySelector) throws -> DisplayMutationBaseline {
     let state = try client.readDisplayState(display)
     return DisplayMutationBaseline(
@@ -51,6 +75,14 @@ extension OMDAppCore {
 
   package func restoreDisplayMode(_ baseline: DisplayMutationBaseline) throws -> ProfileApplyResult {
     try restore(baseline, operations: [.displayMode])
+  }
+
+  package func restoreDithering(_ baseline: DisplayMutationBaseline) throws -> ProfileApplyResult {
+    try restore(baseline, operations: [.dithering])
+  }
+
+  package func restoreICC(_ baseline: DisplayMutationBaseline) throws -> ProfileApplyResult {
+    try restore(baseline, operations: [.icc])
   }
 
   private func restore(

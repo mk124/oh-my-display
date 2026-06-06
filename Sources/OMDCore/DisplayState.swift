@@ -21,6 +21,7 @@ public struct DisplayState: Codable, Equatable, Sendable {
   public var isVRR: DisplayAxis<Bool>
 
   public var ditheringEnabled: DisplayAxis<Bool>
+  public var ditheringAvailability: DitheringAvailability
   public var iccProfileURL: DisplayAxis<URL>
 
   public init(
@@ -41,6 +42,7 @@ public struct DisplayState: Codable, Equatable, Sendable {
     hdrMode: DisplayAxis<DisplayHDRMode>,
     isVRR: DisplayAxis<Bool>,
     ditheringEnabled: DisplayAxis<Bool>,
+    ditheringAvailability: DitheringAvailability = .settable,
     iccProfileURL: DisplayAxis<URL>
   ) {
     self.target = target
@@ -60,6 +62,7 @@ public struct DisplayState: Codable, Equatable, Sendable {
     self.hdrMode = hdrMode
     self.isVRR = isVRR
     self.ditheringEnabled = ditheringEnabled
+    self.ditheringAvailability = ditheringAvailability
     self.iccProfileURL = iccProfileURL
   }
 }

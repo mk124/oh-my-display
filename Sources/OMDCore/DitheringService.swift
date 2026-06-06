@@ -25,7 +25,20 @@ struct DitheringService: Sendable {
     case .ambiguous:
       return .unreadable(source: "multiple active framebuffer candidates")
     case .unavailable(let reason):
-      return .unreadable(source: reason)
+      return .unreadable(source: reason.message)
+    }
+  }
+
+  func availability(_ display: ResolvedDisplay) -> DitheringAvailability {
+    switch framebuffer(for: display) {
+    case .selected:
+      return .settable
+    case .ambiguous:
+      return .ambiguousFramebuffer
+    case .unavailable(.noFramebuffers):
+      return .noWritableFramebuffer
+    case .unavailable(.noMatchingActiveFramebuffer):
+      return .noMatchingActiveFramebuffer
     }
   }
 
@@ -56,14 +69,14 @@ struct DitheringService: Sendable {
     case .ambiguous:
       return .blocked("Multiple active framebuffer candidates match this display")
     case .unavailable(let reason):
-      return .backendUnavailable(reason)
+      return .backendUnavailable(reason.message)
     }
   }
 
   private func framebuffer(for display: ResolvedDisplay) -> FramebufferSelection {
     let framebuffers = backend.framebuffers()
     guard !framebuffers.isEmpty else {
-      return .unavailable("IOMobileFramebuffer nodes unavailable")
+      return .unavailable(.noFramebuffers)
     }
 
     let expectedExternal = !display.target.isBuiltin
@@ -73,7 +86,7 @@ struct DitheringService: Sendable {
     }
 
     guard !activeMatches.isEmpty else {
-      return .unavailable("No active framebuffer candidate matches this display")
+      return .unavailable(.noMatchingActiveFramebuffer)
     }
     guard activeMatches.count == 1, let match = activeMatches.first else {
       return .ambiguous
@@ -98,7 +111,21 @@ protocol DitheringBackend: Sendable {
 private enum FramebufferSelection {
   case selected(DitheringFramebuffer)
   case ambiguous
-  case unavailable(String)
+  case unavailable(FramebufferUnavailableReason)
+}
+
+private enum FramebufferUnavailableReason {
+  case noFramebuffers
+  case noMatchingActiveFramebuffer
+
+  var message: String {
+    switch self {
+    case .noFramebuffers:
+      return "IOMobileFramebuffer nodes unavailable"
+    case .noMatchingActiveFramebuffer:
+      return "No active framebuffer candidate matches this display"
+    }
+  }
 }
 
 struct LiveDitheringBackend: DitheringBackend {

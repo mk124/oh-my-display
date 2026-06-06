@@ -54,6 +54,11 @@ final class FakeDisplayController: DisplayClient, @unchecked Sendable {
   var displayModeSetResult = DisplaySetResult.applied()
   var ditheringSetResult = DisplaySetResult.applied()
   var iccSetResult = DisplaySetResult.applied()
+  var ditheringSetResults: [DisplaySetResult] = []
+  var iccSetResults: [DisplaySetResult] = []
+  var iccProfiles: [ICCProfile] = []
+  var appICCProfiles: [ICCProfile] = []
+  var appICCProfilesError: Error?
   var setResolutionCalls: [String] = []
   var setDisplayModeCalls: [String] = []
   var setDitheringCalls: [Bool] = []
@@ -134,16 +139,37 @@ final class FakeDisplayController: DisplayClient, @unchecked Sendable {
 
   func setDithering(_ display: DisplaySelector, enabled: Bool) throws -> DisplaySetResult {
     setDitheringCalls.append(enabled)
-    return ditheringSetResult
+    let result = ditheringSetResults.isEmpty ? ditheringSetResult : ditheringSetResults.removeFirst()
+    if result.status == .applied || result.status == .noOp,
+      var state = states[display]
+    {
+      state.ditheringEnabled = .readable(enabled)
+      states[display] = state
+    }
+    return result
   }
 
   func listICCProfiles() throws -> [ICCProfile] {
-    []
+    iccProfiles
+  }
+
+  func listDisplayAssignableICCProfiles() throws -> [ICCProfile] {
+    if let appICCProfilesError {
+      throw appICCProfilesError
+    }
+    return appICCProfiles
   }
 
   func setICCProfile(_ display: DisplaySelector, profileURL: URL) throws -> DisplaySetResult {
     setICCCalls.append(profileURL)
-    return iccSetResult
+    let result = iccSetResults.isEmpty ? iccSetResult : iccSetResults.removeFirst()
+    if result.status == .applied || result.status == .noOp,
+      var state = states[display]
+    {
+      state.iccProfileURL = .readable(profileURL)
+      states[display] = state
+    }
+    return result
   }
 }
 
@@ -175,6 +201,7 @@ extension DisplayState {
       hdrMode: .readable(.hdr10),
       isVRR: .readable(false),
       ditheringEnabled: .readable(true),
+      ditheringAvailability: .settable,
       iccProfileURL: .unreadable(source: "not configured")
     )
   }

@@ -22,11 +22,12 @@ extension AppDelegate {
       let core = try requireCore()
       guard try core.profileNeedsConfirmation(payload.profileID, for: payload.display)
       else {
-        let result = try core.selectProfile(payload.profileID, for: payload.display)
-        if !result.succeeded {
-          showError(AppMenuError(result.summary))
+        runSafeAxisAction {
+          $0.safelySelectProfile(
+            payload.profileID,
+            for: payload.display,
+            displayName: payload.displayName)
         }
-        rebuildMenu()
         return
       }
 
@@ -44,6 +45,31 @@ extension AppDelegate {
       }
     } catch {
       showError(error)
+    }
+  }
+
+  @objc func setDithering(_ sender: NSMenuItem) {
+    guard let payload = sender.representedObject as? DitheringPayload else {
+      return
+    }
+    runSafeAxisAction {
+      $0.safelySetDithering(
+        payload.enabled,
+        for: payload.display,
+        displayName: payload.displayName)
+    }
+  }
+
+  @objc func setICCProfile(_ sender: NSMenuItem) {
+    guard let payload = sender.representedObject as? ICCProfilePayload else {
+      return
+    }
+    runSafeAxisAction {
+      $0.safelySetICCProfile(
+        payload.url,
+        for: payload.display,
+        displayName: payload.displayName,
+        valueTitle: payload.title)
     }
   }
 
@@ -168,5 +194,37 @@ extension AppDelegate {
     } catch {
       showError(error)
     }
+  }
+
+  func runSafeAxisAction(_ action: (OMDAppCore) throws -> DirectMutationResult) {
+    guard safeMutationDepth == 0 else {
+      return
+    }
+    do {
+      let core = try requireCore()
+      beginSafeMutation()
+      defer {
+        endSafeMutation()
+        rebuildMenu()
+        flushPendingReconcile()
+      }
+      suppressOwnEvents()
+      let result = try action(core)
+      if let message = result.message {
+        showError(AppMenuError(message))
+      }
+    } catch {
+      showError(error)
+    }
+  }
+
+  func beginSafeMutation() {
+    safeMutationDepth += 1
+    reconcileTimer?.invalidate()
+    reconcileTimer = nil
+  }
+
+  func endSafeMutation() {
+    safeMutationDepth -= 1
   }
 }

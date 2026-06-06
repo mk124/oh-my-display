@@ -8,6 +8,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   var reconcileTimer: Timer?
   var suppressEventsUntil: Date?
   var riskyMutationDepth = 0
+  var safeMutationDepth = 0
+  var displayEventCoalescer = DisplayEventCoalescer()
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     do {

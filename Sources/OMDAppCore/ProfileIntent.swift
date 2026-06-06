@@ -49,47 +49,87 @@ extension OMDAppCore {
   func apply(_ intent: DisplayProfileIntent, to display: DisplaySelector) throws
     -> ProfileApplyResult
   {
+    try apply(intent, to: display, catchingFailures: false)
+  }
+
+  func applyCatchingFailures(_ intent: DisplayProfileIntent, to display: DisplaySelector)
+    -> ProfileApplyResult
+  {
+    do {
+      return try apply(intent, to: display, catchingFailures: true)
+    } catch {
+      return ProfileApplyResult(operations: [
+        ProfileOperationResult(
+          operation: .profile,
+          result: .failed(attemptedMutation: false, reason: String(describing: error)))
+      ])
+    }
+  }
+
+  private func apply(
+    _ intent: DisplayProfileIntent,
+    to display: DisplaySelector,
+    catchingFailures: Bool
+  ) throws -> ProfileApplyResult {
     var operations: [ProfileOperationResult] = []
 
-    if let resolution = intent.resolution {
-      let resolutionResult = try resolveResolutionMode(resolution, for: display).flatMap {
-        modeID in
-        try client.setResolutionMode(display, modeID: modeID)
+    func run(_ operation: ProfileOperationKind, _ body: () throws -> DisplaySetResult) throws
+      -> Bool
+    {
+      let result: DisplaySetResult
+      do {
+        result = try body()
+      } catch {
+        guard catchingFailures else {
+          throw error
+        }
+        let result = DisplaySetResult.failed(
+          attemptedMutation: false,
+          reason: String(describing: error))
+        operations.append(ProfileOperationResult(operation: operation, result: result))
+        return false
       }
-      operations.append(ProfileOperationResult(operation: .resolution, result: resolutionResult))
-      guard resolutionResult.isSuccessful else {
+      operations.append(ProfileOperationResult(operation: operation, result: result))
+      return result.isSuccessful
+    }
+
+    if let resolution = intent.resolution {
+      guard try run(.resolution, {
+        try resolveResolutionMode(resolution, for: display).flatMap { modeID in
+          try client.setResolutionMode(display, modeID: modeID)
+        }
+      }) else {
         return ProfileApplyResult(operations: operations)
       }
     }
 
     if let displayMode = intent.displayMode {
-      let displayModeResult = try resolveDisplayMode(displayMode, for: display).flatMap {
-        modeID in
-        try client.setDisplayMode(display, modeID: modeID)
-      }
-      operations.append(ProfileOperationResult(operation: .displayMode, result: displayModeResult))
-      guard displayModeResult.isSuccessful else {
+      guard try run(.displayMode, {
+        try resolveDisplayMode(displayMode, for: display).flatMap { modeID in
+          try client.setDisplayMode(display, modeID: modeID)
+        }
+      }) else {
         return ProfileApplyResult(operations: operations)
       }
     }
 
     if let dithering = intent.ditheringEnabled {
-      let result = try client.setDithering(display, enabled: dithering)
-      operations.append(ProfileOperationResult(operation: .dithering, result: result))
-      guard result.isSuccessful else {
+      guard try run(.dithering, {
+        try client.setDithering(display, enabled: dithering)
+      }) else {
         return ProfileApplyResult(operations: operations)
       }
     }
 
     if let iccProfileURL = intent.iccProfileURL {
-      let result = try client.setICCProfile(display, profileURL: iccProfileURL)
-      operations.append(ProfileOperationResult(operation: .icc, result: result))
+      _ = try run(.icc) {
+        try client.setICCProfile(display, profileURL: iccProfileURL)
+      }
     }
 
     if operations.isEmpty {
       operations.append(ProfileOperationResult(operation: .profile, result: .noOp("emptyProfile")))
     }
-
     return ProfileApplyResult(operations: operations)
   }
 
@@ -140,19 +180,14 @@ extension OMDAppCore {
     for display: DisplaySelector,
     update: (inout DisplayProfileIntent, DisplayState) -> Void
   ) throws {
-    guard let recordIndex = recordIndex(for: display),
-      let currentProfileID = document.displays[recordIndex].currentProfileID,
-      let profileIndex = document.displays[recordIndex].profiles.firstIndex(where: {
-        $0.id == currentProfileID
-      })
-    else {
+    guard let index = currentProfileIndex(for: display) else {
       return
     }
 
     let state = try client.readDisplayState(display)
     try saveTransaction {
-      update(&document.displays[recordIndex].profiles[profileIndex].intent, state)
-      document.displays[recordIndex].profiles[profileIndex].isVerified = true
+      update(&document.displays[index.record].profiles[index.profile].intent, state)
+      document.displays[index.record].profiles[index.profile].isVerified = true
     }
   }
 }

@@ -10,6 +10,7 @@ package protocol DisplayClient: Sendable {
   func setDisplayMode(_ display: DisplaySelector, modeID: DisplayModeID) throws -> DisplaySetResult
   func setDithering(_ display: DisplaySelector, enabled: Bool) throws -> DisplaySetResult
   func listICCProfiles() throws -> [ICCProfile]
+  func listDisplayAssignableICCProfiles() throws -> [ICCProfile]
   func setICCProfile(_ display: DisplaySelector, profileURL: URL) throws -> DisplaySetResult
 }
 
@@ -52,6 +53,10 @@ package struct LiveDisplayClient: DisplayClient {
 
   package func listICCProfiles() throws -> [ICCProfile] {
     try OMDCore.listICCProfiles()
+  }
+
+  package func listDisplayAssignableICCProfiles() throws -> [ICCProfile] {
+    try OMDCore.listDisplayAssignableICCProfiles()
   }
 
   package func setICCProfile(_ display: DisplaySelector, profileURL: URL) throws

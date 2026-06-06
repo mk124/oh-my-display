@@ -402,6 +402,211 @@ final class ProfileTests: XCTestCase {
         for: fixture.display.selector))
   }
 
+  func testDitheringMenuStateUsesReadabilityAndAvailability() throws {
+    let fixture = try AppCoreFixture()
+    var state = fixture.fake.states[fixture.display.selector]!
+    state.ditheringEnabled = .unreadable(source: "missing")
+    fixture.fake.states[fixture.display.selector] = state
+
+    var display = try XCTUnwrap(fixture.core.menuState().displays.first)
+
+    XCTAssertEqual(display.ditheringItems.map(\.title), ["Off", "On"])
+    XCTAssertFalse(display.ditheringItems.contains { $0.isSelected })
+    XCTAssertTrue(display.isDitheringEnabled)
+
+    state.ditheringAvailability = .noMatchingActiveFramebuffer
+    fixture.fake.states[fixture.display.selector] = state
+
+    display = try XCTUnwrap(fixture.core.menuState().displays.first)
+
+    XCTAssertFalse(display.isDitheringEnabled)
+  }
+
+  func testICCMenuStateHandlesSelectionUnavailableAndDuplicateTitles() throws {
+    let fixture = try AppCoreFixture()
+    let first = URL(fileURLWithPath: "/Library/ColorSync/Profiles/Display.icc")
+    let second = URL(fileURLWithPath: "/Users/me/Display.icc")
+    fixture.fake.appICCProfiles = [
+      ICCProfile(name: "Display", url: first),
+      ICCProfile(name: "Display", url: second),
+    ]
+    var state = fixture.fake.states[fixture.display.selector]!
+    state.iccProfileURL = .readable(second)
+    fixture.fake.states[fixture.display.selector] = state
+
+    var display = try XCTUnwrap(fixture.core.menuState().displays.first)
+
+    XCTAssertEqual(display.iccProfileItems.count, 2)
+    XCTAssertTrue(display.iccProfileItems.contains { $0.title == "Display (Display.icc) #1" })
+    XCTAssertTrue(display.iccProfileItems.contains { $0.title == "Display (Display.icc) #2" })
+    XCTAssertEqual(display.iccProfileItems.filter(\.isSelected).map(\.url), [second])
+
+    fixture.fake.appICCProfilesError = FakeDisplayError("profiles failed")
+    display = try XCTUnwrap(fixture.core.menuState().displays.first)
+
+    XCTAssertEqual(display.iccProfileItems, [
+      ICCProfileMenuItem(url: nil, title: "Unavailable", isEnabled: false)
+    ])
+  }
+
+  func testDirectDitheringAndICCPersistOnlyWhenCurrentProfileIsOn() throws {
+    let fixture = try AppCoreFixture()
+    let originalURL = URL(fileURLWithPath: "/Library/ColorSync/Profiles/Original.icc")
+    var state = fixture.fake.states[fixture.display.selector]!
+    state.iccProfileURL = .readable(originalURL)
+    fixture.fake.states[fixture.display.selector] = state
+    _ = try fixture.core.addProfile(for: fixture.display.selector)
+
+    _ = try fixture.core.setDithering(false, for: fixture.display.selector)
+    var document = try ProfileStore(documentURL: fixture.documentURL).load()
+    XCTAssertEqual(document.displays[0].profiles[0].intent.ditheringEnabled, false)
+
+    let newURL = URL(fileURLWithPath: "/Library/ColorSync/Profiles/New.icc")
+    _ = try fixture.core.setICCProfile(newURL, for: fixture.display.selector)
+    document = try ProfileStore(documentURL: fixture.documentURL).load()
+    XCTAssertEqual(document.displays[0].profiles[0].intent.iccProfileURL, newURL)
+
+    try fixture.core.setCurrentOff(for: fixture.display.selector)
+    _ = try fixture.core.setDithering(true, for: fixture.display.selector)
+    document = try ProfileStore(documentURL: fixture.documentURL).load()
+    XCTAssertEqual(document.displays[0].profiles[0].intent.ditheringEnabled, false)
+  }
+
+  func testSafeDitheringNoOpStillRefreshesCurrentProfile() throws {
+    let fixture = try AppCoreFixture()
+    _ = try fixture.core.addProfile(for: fixture.display.selector)
+    var state = fixture.fake.states[fixture.display.selector]!
+    state.ditheringEnabled = .readable(false)
+    fixture.fake.states[fixture.display.selector] = state
+
+    let result = fixture.core.safelySetDithering(
+      false,
+      for: fixture.display.selector,
+      displayName: fixture.display.label)
+
+    let document = try ProfileStore(documentURL: fixture.documentURL).load()
+    XCTAssertTrue(result.succeeded)
+    XCTAssertTrue(fixture.fake.setDitheringCalls.isEmpty)
+    XCTAssertEqual(document.displays[0].profiles[0].intent.ditheringEnabled, false)
+  }
+
+  func testSafeICCBlocksWhenSelectedProfileDisappears() throws {
+    let fixture = try AppCoreFixture()
+    let selected = URL(fileURLWithPath: "/Library/ColorSync/Profiles/Selected.icc")
+
+    let result = fixture.core.safelySetICCProfile(
+      selected,
+      for: fixture.display.selector,
+      displayName: fixture.display.label,
+      valueTitle: "Selected")
+
+    XCTAssertFalse(result.succeeded)
+    XCTAssertTrue(result.message?.contains("no longer available") == true)
+    XCTAssertTrue(fixture.fake.setICCCalls.isEmpty)
+  }
+
+  func testSafeICCAttemptedFailureRestoresBaseline() throws {
+    let fixture = try AppCoreFixture()
+    let oldURL = URL(fileURLWithPath: "/Library/ColorSync/Profiles/Old.icc")
+    let newURL = URL(fileURLWithPath: "/Library/ColorSync/Profiles/New.icc")
+    var state = fixture.fake.states[fixture.display.selector]!
+    state.iccProfileURL = .readable(oldURL)
+    fixture.fake.states[fixture.display.selector] = state
+    fixture.fake.appICCProfiles = [ICCProfile(name: "New", url: newURL)]
+    fixture.fake.iccSetResults = [
+      .readbackMismatch("readback mismatch"),
+      .applied("restored"),
+    ]
+    _ = try fixture.core.addProfile(for: fixture.display.selector)
+
+    let result = fixture.core.safelySetICCProfile(
+      newURL,
+      for: fixture.display.selector,
+      displayName: fixture.display.label,
+      valueTitle: "New")
+
+    let document = try ProfileStore(documentURL: fixture.documentURL).load()
+    XCTAssertFalse(result.succeeded)
+    XCTAssertTrue(result.message?.contains("Previous ICC Profile state was restored") == true)
+    XCTAssertEqual(fixture.fake.setICCCalls, [newURL, oldURL])
+    XCTAssertEqual(document.displays[0].profiles[0].intent.iccProfileURL, oldURL)
+  }
+
+  func testSafeICCRestoreFailureTurnsCurrentOff() throws {
+    let fixture = try AppCoreFixture()
+    let oldURL = URL(fileURLWithPath: "/Library/ColorSync/Profiles/Old.icc")
+    let newURL = URL(fileURLWithPath: "/Library/ColorSync/Profiles/New.icc")
+    var state = fixture.fake.states[fixture.display.selector]!
+    state.iccProfileURL = .readable(oldURL)
+    fixture.fake.states[fixture.display.selector] = state
+    fixture.fake.appICCProfiles = [ICCProfile(name: "New", url: newURL)]
+    fixture.fake.iccSetResults = [
+      .readbackMismatch("readback mismatch"),
+      .failed(attemptedMutation: true, reason: "restore failed"),
+    ]
+    _ = try fixture.core.addProfile(for: fixture.display.selector)
+
+    let result = fixture.core.safelySetICCProfile(
+      newURL,
+      for: fixture.display.selector,
+      displayName: fixture.display.label,
+      valueTitle: "New")
+
+    let document = try ProfileStore(documentURL: fixture.documentURL).load()
+    XCTAssertFalse(result.succeeded)
+    XCTAssertTrue(result.message?.contains("Current was turned Off") == true)
+    XCTAssertNil(document.displays[0].currentProfileID)
+  }
+
+  func testSafeProfileSelectionCommitFailureRestoresBaseline() throws {
+    let fixture = try AppCoreFixture()
+    fixture.fake.displayModes[fixture.display.selector] = .readable([
+      .mode(id: "mode-rgb-12", bitDepth: 12),
+      .mode(id: "mode-rgb-10", bitDepth: 10),
+    ])
+    let profile = try fixture.core.addProfile(for: fixture.display.selector)
+    try fixture.core.setCurrentOff(for: fixture.display.selector)
+
+    var state = fixture.fake.states[fixture.display.selector]!
+    state.currentDisplayModeID = .readable(DisplayModeID("mode-rgb-10"))
+    state.bitDepth = .readable(10)
+    fixture.fake.states[fixture.display.selector] = state
+    fixture.fake.clearCalls()
+    try replaceProfileStoreDirectoryWithFile(fixture.documentURL.deletingLastPathComponent())
+
+    let result = fixture.core.safelySelectProfile(
+      profile.id,
+      for: fixture.display.selector,
+      displayName: fixture.display.label)
+
+    XCTAssertFalse(result.succeeded)
+    XCTAssertTrue(result.message?.contains("Previous Profile state was restored") == true)
+    XCTAssertEqual(fixture.fake.setDisplayModeCalls, ["mode-rgb-12", "mode-rgb-10"])
+    XCTAssertNil(fixture.core.document.displays[0].currentProfileID)
+  }
+
+  func testSafeProfileSelectionPreMutationFailureDoesNotRestoreOrTurnCurrentOff() throws {
+    let fixture = try AppCoreFixture()
+    let profile = try fixture.core.addProfile(for: fixture.display.selector)
+    fixture.core.document.displays[0].profiles[0].intent.resolution = nil
+    fixture.fake.displayModesError = FakeDisplayError("display modes failed")
+    fixture.fake.clearCalls()
+
+    let result = fixture.core.safelySelectProfile(
+      profile.id,
+      for: fixture.display.selector,
+      displayName: fixture.display.label)
+
+    XCTAssertFalse(result.succeeded)
+    XCTAssertTrue(result.message?.contains("Current Profile was not updated") == true)
+    XCTAssertEqual(fixture.fake.setResolutionCalls, [])
+    XCTAssertEqual(fixture.fake.setDisplayModeCalls, [])
+    XCTAssertEqual(fixture.core.document.displays[0].currentProfileID, profile.id)
+    XCTAssertTrue(
+      fixture.core.document.displays[0].lastResult?.summary.contains("display modes failed")
+        == true)
+  }
+
   private func storedProfile(_ profileID: UUID, in fixture: AppCoreFixture) throws
     -> DisplayProfile
   {
@@ -422,5 +627,10 @@ final class ProfileTests: XCTestCase {
         $0.id == profileID
       })
     fixture.core.document.displays[recordIndex].profiles[profileIndex].isVerified = isVerified
+  }
+
+  private func replaceProfileStoreDirectoryWithFile(_ directory: URL) throws {
+    try FileManager.default.removeItem(at: directory)
+    try Data("not-a-directory".utf8).write(to: directory)
   }
 }

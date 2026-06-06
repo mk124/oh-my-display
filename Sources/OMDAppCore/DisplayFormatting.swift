@@ -185,6 +185,36 @@ func displayModeTitle(_ mode: DisplayMode) -> String {
   ].compactMap { $0 }.joined(separator: " ")
 }
 
+func iccProfileTitles(_ profiles: [ICCProfile]) -> [URL: String] {
+  let sorted = profiles.sorted {
+    let lhs = ICCProfileIdentity.sortKey($0.url)
+    let rhs = ICCProfileIdentity.sortKey($1.url)
+    return lhs.localizedStandardCompare(rhs) == .orderedAscending
+  }
+  let names = Dictionary(grouping: sorted, by: \.name)
+  var rawTitles: [URL: String] = [:]
+
+  for profile in sorted {
+    let group = names[profile.name] ?? []
+    rawTitles[profile.url] = group.count == 1
+      ? profile.name
+      : "\(profile.name) (\(profile.url.lastPathComponent))"
+  }
+
+  let titleGroups = Dictionary(grouping: sorted) { rawTitles[$0.url] ?? $0.name }
+  var titles: [URL: String] = [:]
+  for (title, group) in titleGroups {
+    let ordered = group.sorted {
+      ICCProfileIdentity.sortKey($0.url).localizedStandardCompare(
+        ICCProfileIdentity.sortKey($1.url)) == .orderedAscending
+    }
+    for (index, profile) in ordered.enumerated() {
+      titles[profile.url] = ordered.count == 1 ? title : "\(title) #\(index + 1)"
+    }
+  }
+  return titles
+}
+
 func formatHz(_ value: Double) -> String {
   if value.rounded() == value {
     return "\(Int(value))Hz"

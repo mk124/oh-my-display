@@ -77,6 +77,7 @@ struct DisplayStateReader: Sendable {
       isVRR: displayMode.map { .readable($0.isVRR, source: "CADisplay VRR") }
         ?? .unreadable(source: "CADisplay VRR unavailable"),
       ditheringEnabled: ditheringService.readDithering(resolved),
+      ditheringAvailability: ditheringService.availability(resolved),
       iccProfileURL: iccProfileService.readICCProfile(resolved)
     )
   }

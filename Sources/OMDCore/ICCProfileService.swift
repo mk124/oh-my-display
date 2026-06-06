@@ -30,9 +30,17 @@ struct ICCProfileService: Sendable {
   }
 
   func listICCProfiles() throws -> [ICCProfile] {
+    uniqueSortedProfiles(try backend.installedProfiles())
+  }
+
+  func listDisplayAssignableICCProfiles() throws -> [ICCProfile] {
+    uniqueSortedProfiles(try backend.installedDisplayProfiles())
+  }
+
+  private func uniqueSortedProfiles(_ profiles: [ICCProfile]) -> [ICCProfile] {
     var profilesByPath: [String: ICCProfile] = [:]
-    for profile in try backend.installedProfiles() {
-      let path = profile.url.standardizedFileURL.path
+    for profile in profiles {
+      let path = ICCProfileIdentity.sortKey(profile.url)
       if profilesByPath[path] == nil {
         profilesByPath[path] = profile
       }
@@ -42,8 +50,8 @@ struct ICCProfileService: Sendable {
       if nameOrder != .orderedSame {
         return nameOrder == .orderedAscending
       }
-      return lhs.url.standardizedFileURL.path.localizedStandardCompare(
-        rhs.url.standardizedFileURL.path) == .orderedAscending
+      return ICCProfileIdentity.sortKey(lhs.url).localizedStandardCompare(
+        ICCProfileIdentity.sortKey(rhs.url)) == .orderedAscending
     }
   }
 
@@ -70,7 +78,9 @@ struct ICCProfileService: Sendable {
     }
 
     for attempt in 0..<10 {
-      if backend.profile(for: deviceID)?.url.standardizedFileURL == profileURL.standardizedFileURL {
+      if let readbackURL = backend.profile(for: deviceID)?.url,
+        ICCProfileIdentity.sameFile(readbackURL, profileURL)
+      {
         return .applied("ICC profile applied")
       }
       if attempt < 9 {
@@ -94,6 +104,7 @@ struct ICCProfileReadback: Sendable {
 protocol ICCProfileBackend: Sendable {
   func isReadableProfile(_ url: URL) -> Bool
   func installedProfiles() throws -> [ICCProfile]
+  func installedDisplayProfiles() throws -> [ICCProfile]
   func deviceID(for displayID: CGDirectDisplayID) -> ICCDisplayDeviceID?
   func profile(for deviceID: ICCDisplayDeviceID) -> ICCProfileReadback?
   func setCustomProfile(_ profileURL: URL, for deviceID: ICCDisplayDeviceID) -> Bool
@@ -106,7 +117,17 @@ struct LiveICCProfileBackend: ICCProfileBackend {
   }
 
   func installedProfiles() throws -> [ICCProfile] {
-    let collector = ICCProfileCollector()
+    try installedProfiles(parse: Self.installedProfile(from:))
+  }
+
+  func installedDisplayProfiles() throws -> [ICCProfile] {
+    try installedProfiles(parse: Self.installedDisplayProfile(from:))
+  }
+
+  private func installedProfiles(parse: @escaping (CFDictionary) -> ICCProfile?) throws
+    -> [ICCProfile]
+  {
+    let collector = ICCProfileCollector(parse: parse)
     var seed: UInt32 = 0
     var error: Unmanaged<CFError>?
     let options = [
@@ -119,7 +140,7 @@ struct LiveICCProfileBackend: ICCProfileBackend {
           return true
         }
         let collector = Unmanaged<ICCProfileCollector>.fromOpaque(userInfo).takeUnretainedValue()
-        if let profile = LiveICCProfileBackend.installedProfile(from: profileInfo) {
+        if let profile = collector.parse(profileInfo) {
           collector.profiles.append(profile)
         }
         return true
@@ -199,6 +220,25 @@ struct LiveICCProfileBackend: ICCProfileBackend {
     )
   }
 
+  static func installedDisplayProfile(from info: CFDictionary) -> ICCProfile? {
+    let dictionary = info as NSDictionary
+    let classKey = kColorSyncProfileClass.takeUnretainedValue()
+    let displayClass = kColorSyncSigDisplayClass.takeUnretainedValue() as String
+    guard dictionary[classKey] as? String == displayClass,
+      let profile = installedProfile(from: info),
+      FileManager.default.isReadableFile(atPath: profile.url.path)
+    else {
+      return nil
+    }
+
+    var error: Unmanaged<CFError>?
+    guard let colorSyncProfile = ColorSyncProfileCreateWithURL(profile.url as CFURL, &error) else {
+      return nil
+    }
+    _ = colorSyncProfile.takeRetainedValue()
+    return profile
+  }
+
   static func customProfileURL(from info: [String: Any]) -> URL? {
     let customProfilesKey = kColorSyncCustomProfiles.takeUnretainedValue() as String
     guard let section = info[customProfilesKey] as? [String: Any] else {
@@ -274,5 +314,10 @@ struct LiveICCProfileBackend: ICCProfileBackend {
 }
 
 private final class ICCProfileCollector {
+  let parse: (CFDictionary) -> ICCProfile?
   var profiles: [ICCProfile] = []
+
+  init(parse: @escaping (CFDictionary) -> ICCProfile?) {
+    self.parse = parse
+  }
 }

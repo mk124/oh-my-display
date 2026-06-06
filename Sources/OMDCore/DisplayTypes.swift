@@ -119,6 +119,17 @@ public struct ICCProfile: Codable, Equatable, Sendable {
   }
 }
 
+public enum DitheringAvailability: String, Codable, Equatable, Sendable {
+  case settable
+  case noWritableFramebuffer
+  case noMatchingActiveFramebuffer
+  case ambiguousFramebuffer
+
+  public var canSet: Bool {
+    self == .settable
+  }
+}
+
 public enum DisplayEncoding: String, Codable, Sendable {
   case none
   case rgb

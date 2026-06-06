@@ -25,11 +25,15 @@ extension AppDelegate {
     scheduleReconcile(trigger: .wake)
   }
 
-  func scheduleReconcile(trigger: DisplayEventTrigger) {
+  func scheduleReconcile(trigger: DisplayEventTrigger, bypassSuppression: Bool = false) {
     guard riskyMutationDepth == 0 else {
       return
     }
-    if let suppressEventsUntil, suppressEventsUntil > Date() {
+    guard safeMutationDepth == 0 else {
+      displayEventCoalescer.record(trigger)
+      return
+    }
+    if !bypassSuppression, let suppressEventsUntil, suppressEventsUntil > Date() {
       return
     }
     reconcileTimer?.invalidate()
@@ -43,6 +47,10 @@ extension AppDelegate {
 
   func runReconcile(trigger: DisplayEventTrigger, showErrors: Bool) {
     guard riskyMutationDepth == 0 else {
+      return
+    }
+    guard safeMutationDepth == 0 else {
+      displayEventCoalescer.record(trigger)
       return
     }
     guard let core else {
@@ -62,6 +70,14 @@ extension AppDelegate {
 
   func suppressOwnEvents() {
     suppressEventsUntil = Date().addingTimeInterval(3)
+  }
+
+  func flushPendingReconcile() {
+    guard let trigger = displayEventCoalescer.takePending() else {
+      return
+    }
+    suppressEventsUntil = nil
+    scheduleReconcile(trigger: trigger, bypassSuppression: true)
   }
 }
 

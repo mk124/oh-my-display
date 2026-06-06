@@ -88,6 +88,32 @@ final class DitheringServiceTests: XCTestCase {
     XCTAssertEqual(backend.setCalls, [])
   }
 
+  func testAvailabilityDistinguishesUnreadableValueFromUnavailableFramebuffer() {
+    let unreadableBackend = FakeDitheringBackend(framebuffers: [
+      framebuffer(id: 1, external: true, active: true, enabled: nil)
+    ])
+    let unavailableBackend = FakeDitheringBackend(framebuffers: [
+      framebuffer(id: 1, external: false, active: true, enabled: true)
+    ])
+    let ambiguousBackend = FakeDitheringBackend(framebuffers: [
+      framebuffer(id: 1, external: true, active: true, enabled: true),
+      framebuffer(id: 2, external: true, active: true, enabled: true),
+    ])
+
+    XCTAssertEqual(
+      DitheringService(resolver: FakeDisplayResolver(isBuiltin: false), backend: unreadableBackend)
+        .availability(FakeDisplayResolver.resolvedDisplay(isBuiltin: false)),
+      .settable)
+    XCTAssertEqual(
+      DitheringService(resolver: FakeDisplayResolver(isBuiltin: false), backend: unavailableBackend)
+        .availability(FakeDisplayResolver.resolvedDisplay(isBuiltin: false)),
+      .noMatchingActiveFramebuffer)
+    XCTAssertEqual(
+      DitheringService(resolver: FakeDisplayResolver(isBuiltin: false), backend: ambiguousBackend)
+        .availability(FakeDisplayResolver.resolvedDisplay(isBuiltin: false)),
+      .ambiguousFramebuffer)
+  }
+
   func testSetDitheringReportsFailedWriteAsAttemptedFailure() throws {
     let backend = FakeDitheringBackend(
       framebuffers: [framebuffer(id: 1, external: true, active: true, enabled: true)],

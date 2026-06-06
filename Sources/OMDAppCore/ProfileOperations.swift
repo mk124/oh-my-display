@@ -91,18 +91,22 @@ extension OMDAppCore {
   package func applyProfile(_ profileID: UUID, for display: DisplaySelector) throws
     -> ProfileApplyResult
   {
+    let profile = try profile(profileID, for: display)
+    let result = try apply(profile.intent, to: display)
+    try recordApplyResult(result, for: display)
+    return result
+  }
+
+  func recordApplyResult(_ result: ProfileApplyResult, for display: DisplaySelector) throws {
     guard let recordIndex = recordIndex(for: display) else {
       throw ProfileStoreError.missingDisplay(display.rawValue)
     }
-    let profile = try profile(profileID, for: display)
-    let result = try apply(profile.intent, to: display)
     let lastResult = result.succeeded ? nil : ProfileLastResult(summary: result.summary)
     if document.displays[recordIndex].lastResult != lastResult {
       try saveTransaction {
         document.displays[recordIndex].lastResult = lastResult
       }
     }
-    return result
   }
 
   package func setCurrentProfile(_ profileID: UUID, for display: DisplaySelector) throws {
@@ -146,5 +150,55 @@ extension OMDAppCore {
     try updateCurrentProfile(for: display) { intent, state in
       intent.displayMode = captureDisplayModeIntent(from: state)
     }
+  }
+
+  package func refreshCurrentProfileDithering(for display: DisplaySelector) throws {
+    try updateCurrentProfile(for: display) { intent, state in
+      intent.ditheringEnabled = readableValue(state.ditheringEnabled)
+    }
+  }
+
+  package func refreshCurrentProfileICC(for display: DisplaySelector) throws {
+    try updateCurrentProfile(for: display) { intent, state in
+      intent.iccProfileURL = readableValue(state.iccProfileURL)
+    }
+  }
+
+  func refreshCurrentProfileDithering(for display: DisplaySelector, enabled: Bool) throws {
+    try updateCurrentProfileIntent(for: display) { intent in
+      intent.ditheringEnabled = enabled
+    }
+  }
+
+  func refreshCurrentProfileICC(for display: DisplaySelector, profileURL: URL) throws {
+    try updateCurrentProfileIntent(for: display) { intent in
+      intent.iccProfileURL = profileURL
+    }
+  }
+
+  func updateCurrentProfileIntent(
+    for display: DisplaySelector,
+    update: (inout DisplayProfileIntent) -> Void
+  ) throws {
+    guard let index = currentProfileIndex(for: display) else {
+      return
+    }
+
+    try saveTransaction {
+      update(&document.displays[index.record].profiles[index.profile].intent)
+      document.displays[index.record].profiles[index.profile].isVerified = true
+    }
+  }
+
+  func currentProfileIndex(for display: DisplaySelector) -> (record: Int, profile: Int)? {
+    guard let recordIndex = recordIndex(for: display),
+      let currentProfileID = document.displays[recordIndex].currentProfileID,
+      let profileIndex = document.displays[recordIndex].profiles.firstIndex(where: {
+        $0.id == currentProfileID
+      })
+    else {
+      return nil
+    }
+    return (recordIndex, profileIndex)
   }
 }

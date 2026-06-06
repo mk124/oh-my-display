@@ -51,6 +51,8 @@ extension AppDelegate {
     submenu.addItem(.separator())
     submenu.addItem(resolutionMenu(display))
     submenu.addItem(displayModeMenu(display))
+    submenu.addItem(ditheringMenu(display))
+    submenu.addItem(iccProfileMenu(display))
 
     item.submenu = submenu
     return item
@@ -70,6 +72,7 @@ extension AppDelegate {
       if let profileID = currentItem.profileID {
         item.representedObject = CurrentPayload(
           display: display.display.selector,
+          displayName: display.title,
           profileID: profileID)
       } else {
         item.representedObject = DisplayPayload(display: display.display.selector)
@@ -172,6 +175,51 @@ extension AppDelegate {
           modeID: mode.id)
         submenu.addItem(menuItem)
       }
+    }
+    item.submenu = submenu
+    return item
+  }
+
+  func ditheringMenu(_ display: DisplayMenuState) -> NSMenuItem {
+    let item = NSMenuItem(title: "Dithering", action: nil, keyEquivalent: "")
+    item.isEnabled = display.isDitheringEnabled
+    let submenu = NSMenu()
+    for dithering in display.ditheringItems {
+      let menuItem = NSMenuItem(
+        title: dithering.title,
+        action: #selector(setDithering(_:)),
+        keyEquivalent: "")
+      menuItem.target = self
+      menuItem.state = dithering.isSelected ? .on : .off
+      menuItem.representedObject = DitheringPayload(
+        display: display.display.selector,
+        displayName: display.title,
+        enabled: dithering.enabled)
+      submenu.addItem(menuItem)
+    }
+    item.submenu = submenu
+    return item
+  }
+
+  func iccProfileMenu(_ display: DisplayMenuState) -> NSMenuItem {
+    let item = NSMenuItem(title: "ICC Profile", action: nil, keyEquivalent: "")
+    let submenu = NSMenu()
+    for profile in display.iccProfileItems {
+      let menuItem = NSMenuItem(
+        title: profile.title,
+        action: profile.url == nil ? nil : #selector(setICCProfile(_:)),
+        keyEquivalent: "")
+      menuItem.target = self
+      menuItem.state = profile.isSelected ? .on : .off
+      menuItem.isEnabled = profile.isEnabled
+      if let url = profile.url {
+        menuItem.representedObject = ICCProfilePayload(
+          display: display.display.selector,
+          displayName: display.title,
+          url: url,
+          title: profile.title)
+      }
+      submenu.addItem(menuItem)
     }
     item.submenu = submenu
     return item
