@@ -30,6 +30,8 @@ package struct CurrentProfileMenuItem: Equatable, Sendable {
 package struct ProfileMenuItem: Equatable, Sendable {
   package var profileID: UUID
   package var title: String
+  package var technicalLabel: String
+  package var customName: String?
 }
 
 package struct ResolutionMenuItem: Equatable, Sendable {

@@ -113,6 +113,10 @@ package struct DisplayProfile: Codable, Equatable, Identifiable, Sendable {
     "#\(ordinal) \(trimmedCustomName ?? intent.technicalSummary)"
   }
 
+  package var technicalLabel: String {
+    "#\(ordinal) \(intent.technicalSummary)"
+  }
+
   package var shortLabel: String {
     trimmedCustomName.map { "#\(ordinal) \($0)" } ?? "#\(ordinal)"
   }

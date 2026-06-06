@@ -26,18 +26,19 @@ extension OMDAppCore {
     }
   }
 
+  // An empty (or whitespace-only) name clears the custom name.
   package func renameProfile(_ profileID: UUID, for display: DisplaySelector, to name: String) throws {
     let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !trimmedName.isEmpty else { throw ProfileStoreError.emptyProfileName }
+    let newName = trimmedName.isEmpty ? nil : trimmedName
     guard let recordIndex = recordIndex(for: display) else { throw ProfileStoreError.missingDisplay(display.rawValue) }
-    if document.displays[recordIndex].profiles.contains(where: { $0.id != profileID && $0.customName == trimmedName }) {
-      throw ProfileStoreError.duplicateProfileName(trimmedName)
+    if let newName, document.displays[recordIndex].profiles.contains(where: { $0.id != profileID && $0.customName == newName }) {
+      throw ProfileStoreError.duplicateProfileName(newName)
     }
     guard let profileIndex = document.displays[recordIndex].profiles.firstIndex(where: { $0.id == profileID }) else {
       throw ProfileStoreError.missingProfile(profileID)
     }
 
-    try saveTransaction { document.displays[recordIndex].profiles[profileIndex].customName = trimmedName }
+    try saveTransaction { document.displays[recordIndex].profiles[profileIndex].customName = newName }
   }
 
   package func deleteProfile(_ profileID: UUID, for display: DisplaySelector) throws {

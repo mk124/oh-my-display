@@ -114,7 +114,8 @@ extension AppDelegate {
     let payload = ProfilePayload(
       display: display,
       profileID: profile.profileID,
-      title: profile.title)
+      technicalLabel: profile.technicalLabel,
+      customName: profile.customName)
 
     let rename = NSMenuItem(
       title: "Rename...",

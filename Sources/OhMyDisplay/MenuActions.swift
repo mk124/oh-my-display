@@ -40,10 +40,12 @@ extension AppDelegate {
     let alert = NSAlert()
     alert.icon = NSImage(systemSymbolName: "display", accessibilityDescription: nil)
     alert.messageText = "Rename Profile"
-    alert.informativeText = payload.title
+    alert.informativeText = payload.technicalLabel
     alert.addButton(withTitle: "Rename")
     alert.addButton(withTitle: "Cancel")
     let input = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
+    input.stringValue = payload.customName ?? ""
+    input.placeholderString = "Leave empty to remove the name"
     alert.accessoryView = input
     NSApp.activate(ignoringOtherApps: true)
     guard alert.runModal() == .alertFirstButtonReturn else { return }

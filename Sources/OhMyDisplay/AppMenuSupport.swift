@@ -13,7 +13,8 @@ struct CurrentPayload {
 struct ProfilePayload {
   var display: DisplaySelector
   var profileID: UUID
-  var title: String
+  var technicalLabel: String
+  var customName: String?
 }
 
 struct ResolutionPayload {

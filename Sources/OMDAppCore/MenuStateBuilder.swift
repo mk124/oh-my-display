@@ -42,7 +42,7 @@ extension OMDAppCore {
         isSelected: profile.id == record?.currentProfileID)
     }
     let profileItems = profiles.map { profile in
-      ProfileMenuItem(profileID: profile.id, title: profile.label)
+      ProfileMenuItem(profileID: profile.id, title: profile.label, technicalLabel: profile.technicalLabel, customName: profile.customName)
     }
 
     return DisplayMenuState(

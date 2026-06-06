@@ -169,6 +169,7 @@ final class ProfileTests: XCTestCase {
 
     var display = try XCTUnwrap(fixture.core.menuState().displays.first)
     XCTAssertEqual(display.currentItems.filter(\.isSelected).map(\.name), ["#1"])
+    let technicalTitles = display.profileItems.map(\.title)
 
     try fixture.core.renameProfile(profile.id, for: fixture.display.selector, to: "My HDR Profile")
 
@@ -177,6 +178,27 @@ final class ProfileTests: XCTestCase {
     XCTAssertEqual(display.currentItems.filter(\.isSelected).map(\.name), ["#1 My HDR Profile"])
     XCTAssertEqual(display.currentItems.map(\.title), ["Off", "#1 My HDR Profile"])
     XCTAssertEqual(display.profileItems.map(\.title), ["#1 My HDR Profile"])
+    XCTAssertEqual(display.profileItems.map(\.customName), ["My HDR Profile"])
+    XCTAssertEqual(display.profileItems.map(\.technicalLabel), technicalTitles)
+
+    try fixture.core.renameProfile(profile.id, for: fixture.display.selector, to: "  ")
+
+    display = try XCTUnwrap(fixture.core.menuState().displays.first)
+    XCTAssertEqual(display.currentItems.filter(\.isSelected).map(\.name), ["#1"])
+    XCTAssertEqual(display.profileItems.map(\.customName), [nil])
+  }
+
+  func testClearingNamesNeverConflictsAsDuplicates() throws {
+    let fixture = try AppCoreFixture()
+    let first = try fixture.core.addProfile(for: fixture.display.selector)
+    let second = try fixture.core.addProfile(for: fixture.display.selector)
+    try fixture.core.renameProfile(first.id, for: fixture.display.selector, to: "Named")
+
+    try fixture.core.renameProfile(first.id, for: fixture.display.selector, to: "")
+    try fixture.core.renameProfile(second.id, for: fixture.display.selector, to: "")
+
+    let document = try ProfileStore(documentURL: fixture.documentURL).load()
+    XCTAssertEqual(document.displays[0].profiles.map(\.customName), [nil, nil])
   }
 
   func testProfilesCanBeManagedWithoutSelectingThem() throws {

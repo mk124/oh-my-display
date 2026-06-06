@@ -2,7 +2,6 @@ import Foundation
 
 enum ProfileStoreError: Error, Equatable {
   case unsupportedSchemaVersion(Int)
-  case emptyProfileName
   case duplicateProfileName(String)
   case missingDisplay(String)
   case missingCurrentProfile
