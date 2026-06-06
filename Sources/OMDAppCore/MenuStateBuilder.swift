@@ -21,7 +21,6 @@ extension OMDAppCore {
   func makeDisplayMenu(display: DisplayTarget, iccProfiles: [ICCProfile]?) -> DisplayMenuState {
     let record = record(for: display.selector)
     let currentProfile = record.flatMap(currentProfile(in:))
-    let degradedReason = record?.lastResult?.summary
     let state = try? client.readDisplayState(display.selector)
     let resolutionMenus = state.map { makeResolutionFacetItems(for: display.selector, state: $0) } ?? (hidpi: [], resolution: [], refreshRate: [])
     let displayModeItems = state.flatMap { try? makeDisplayModeItems(for: display.selector, state: $0) } ?? []
@@ -56,8 +55,7 @@ extension OMDAppCore {
       displayModeItems: displayModeItems,
       ditheringItems: ditheringItems.items,
       isDitheringEnabled: ditheringItems.isEnabled,
-      iccProfileItems: iccProfileItems,
-      degradedReason: degradedReason
+      iccProfileItems: iccProfileItems
     )
   }
 
@@ -137,7 +135,13 @@ extension OMDAppCore {
 
     let titles = iccProfileTitles(profiles)
     let current = state.flatMap { readableValue($0.iccProfileURL) }
-    return profiles.sorted {
+    // ColorSync embeds the display UUID in the file names of the profiles it
+    // generates per display; those belong to this display and sort first.
+    let displayUUID = state.flatMap { state in
+      let raw = state.target.selector.rawValue
+      return raw.hasPrefix("uuid:") ? String(raw.dropFirst(5)) : nil
+    }
+    let items = profiles.sorted {
       let lhs = titles[$0.url] ?? $0.name
       let rhs = titles[$1.url] ?? $1.name
       if lhs != rhs {
@@ -150,7 +154,9 @@ extension OMDAppCore {
         url: profile.url,
         name: profile.name,
         title: titles[profile.url] ?? profile.name,
-        isSelected: current.map { ICCProfileIdentity.sameFile($0, profile.url) } ?? false)
+        isSelected: current.map { ICCProfileIdentity.sameFile($0, profile.url) } ?? false,
+        isDisplayProfile: displayUUID.map { profile.url.lastPathComponent.localizedCaseInsensitiveContains($0) } ?? false)
     }
+    return items.filter(\.isDisplayProfile) + items.filter { !$0.isDisplayProfile }
   }
 }

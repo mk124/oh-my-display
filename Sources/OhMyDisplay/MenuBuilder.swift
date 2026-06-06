@@ -35,15 +35,9 @@ extension AppDelegate {
   }
 
   func displayMenuItem(_ display: DisplayMenuState) -> NSMenuItem {
-    let title = display.degradedReason == nil ? display.title : "\(display.title) - Issue"
-    let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+    let item = NSMenuItem(title: display.title, action: nil, keyEquivalent: "")
     item.image = NSImage(systemSymbolName: "display", accessibilityDescription: nil)
     let submenu = NSMenu()
-
-    if let degradedReason = display.degradedReason {
-      submenu.addItem(disabledItem("Issue: \(degradedReason)"))
-      submenu.addItem(.separator())
-    }
 
     let current = submenuItem("Profile", currentValue: display.currentItems.first(where: \.isSelected)?.name)
     current.submenu = currentMenu(display)
@@ -218,7 +212,11 @@ extension AppDelegate {
   func iccProfileMenu(_ display: DisplayMenuState) -> NSMenuItem {
     let item = submenuItem("ICC Profile", currentValue: display.iccProfileItems.first(where: \.isSelected)?.name)
     let submenu = NSMenu()
-    for profile in display.iccProfileItems {
+    for (index, profile) in display.iccProfileItems.enumerated() {
+      // This display's own profiles sort first; one separator marks the boundary.
+      if index > 0, display.iccProfileItems[index - 1].isDisplayProfile, !profile.isDisplayProfile {
+        submenu.addItem(.separator())
+      }
       let menuItem = NSMenuItem(
         title: profile.title,
         action: profile.url == nil ? nil : #selector(setICCProfile(_:)),

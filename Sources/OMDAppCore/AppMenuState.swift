@@ -17,7 +17,6 @@ package struct DisplayMenuState: Equatable, Sendable {
   package var ditheringItems: [DitheringMenuItem] = []
   package var isDitheringEnabled = true
   package var iccProfileItems: [ICCProfileMenuItem] = []
-  package var degradedReason: String?
 }
 
 package struct CurrentProfileMenuItem: Equatable, Sendable {
@@ -61,4 +60,5 @@ package struct ICCProfileMenuItem: Equatable, Sendable {
   package var title: String
   package var isSelected = false
   package var isEnabled = true
+  package var isDisplayProfile = false
 }

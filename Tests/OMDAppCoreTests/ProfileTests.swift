@@ -550,6 +550,21 @@ final class ProfileTests: XCTestCase {
     ])
   }
 
+  func testICCMenuPinsThisDisplaysProfilesFirst() throws {
+    let fixture = try AppCoreFixture()
+    let displayProfile = URL(fileURLWithPath: "/Library/ColorSync/Profiles/Displays/TCL Smart TV-one.icc")
+    let generic = URL(fileURLWithPath: "/Library/ColorSync/Profiles/Adobe RGB (1998).icc")
+    fixture.fake.appICCProfiles = [
+      ICCProfile(name: "Adobe RGB (1998)", url: generic),
+      ICCProfile(name: "TCL Smart TV", url: displayProfile),
+    ]
+
+    let display = try XCTUnwrap(fixture.core.menuState().displays.first)
+
+    XCTAssertEqual(display.iccProfileItems.map(\.name), ["TCL Smart TV", "Adobe RGB (1998)"])
+    XCTAssertEqual(display.iccProfileItems.map(\.isDisplayProfile), [true, false])
+  }
+
   func testDirectDitheringAndICCPersistOnlyWhenCurrentProfileIsOn() throws {
     let fixture = try AppCoreFixture()
     let originalURL = URL(fileURLWithPath: "/Library/ColorSync/Profiles/Original.icc")
