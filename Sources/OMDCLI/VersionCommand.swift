@@ -1,7 +1,7 @@
 import ArgumentParser
 import Foundation
 
-private let omdVersion = "0.2.0"
+private let omdVersion = "0.1.0"
 
 struct VersionCommand: ParsableCommand {
   static let configuration = CommandConfiguration(commandName: "version")
