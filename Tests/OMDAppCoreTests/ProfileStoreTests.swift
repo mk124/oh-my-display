@@ -45,7 +45,6 @@ final class ProfileStoreTests: XCTestCase {
     XCTAssertThrowsError(try core.addProfile(for: display.selector))
 
     let menuDisplay = try XCTUnwrap(core.menuState().displays.first)
-    XCTAssertEqual(menuDisplay.currentTitle, "Profile: Off")
     XCTAssertEqual(menuDisplay.currentItems.map(\.title), ["Off"])
   }
 }

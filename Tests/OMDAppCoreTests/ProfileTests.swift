@@ -32,8 +32,8 @@ final class ProfileTests: XCTestCase {
     let display = try XCTUnwrap(menu.displays.first)
 
     XCTAssertEqual(display.title, "One")
-    XCTAssertEqual(display.currentTitle, "Profile: Off")
     XCTAssertEqual(display.currentItems.map(\.title), ["Off"])
+    XCTAssertEqual(display.currentItems[0].name, "Off")
     XCTAssertTrue(display.currentItems[0].isSelected)
     XCTAssertTrue(display.profileItems.isEmpty)
   }
@@ -98,8 +98,8 @@ final class ProfileTests: XCTestCase {
   func testMenuStateFacetListsFollowDegradationMatrix() throws {
     let fixture = try AppCoreFixture()
     fixture.fake.resolutionModes[fixture.display.selector] = .readable([
-      mode("res-4k-120-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 120),
-      mode("res-1080-60-lodpi", logical: (1920, 1080), backing: (1920, 1080), hidpi: false, hz: 60),
+      .mode(id: "res-4k-120-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 120),
+      .mode(id: "res-1080-60-lodpi", logical: (1920, 1080), backing: (1920, 1080), hidpi: false, hz: 60),
     ])
 
     var display = try XCTUnwrap(fixture.core.menuState().displays.first)
@@ -108,7 +108,7 @@ final class ProfileTests: XCTestCase {
     XCTAssertEqual(display.refreshRateItems.map(\.title), ["120Hz"])
 
     fixture.fake.resolutionModes[fixture.display.selector] = .readable([
-      mode("res-4k-nil-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: nil)
+      .mode(id: "res-4k-nil-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: nil)
     ])
 
     display = try XCTUnwrap(fixture.core.menuState().displays.first)
@@ -124,11 +124,28 @@ final class ProfileTests: XCTestCase {
     XCTAssertTrue(display.refreshRateItems.isEmpty)
   }
 
+  func testResolutionChangeToUnknownRefreshModeUnselectsRefreshFacet() throws {
+    let fixture = try AppCoreFixture()
+    fixture.fake.resolutionModes[fixture.display.selector] = .readable([
+      .mode(id: "res-4k-120-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 120),
+      .mode(id: "res-4k-nil-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: nil),
+    ])
+
+    _ = try fixture.core.setResolutionMode(
+      ResolutionModeID("res-4k-nil-hidpi"),
+      for: fixture.display.selector)
+
+    let display = try XCTUnwrap(fixture.core.menuState().displays.first)
+    XCTAssertEqual(display.refreshRateItems.map(\.title), ["120Hz"])
+    XCTAssertFalse(display.refreshRateItems.contains { $0.isSelected })
+    XCTAssertEqual(display.hidpiItems.filter(\.isSelected).map(\.title), ["On"])
+  }
+
   func testDirectResolutionSettingPersistsOnlyWhenCurrentProfileIsOn() throws {
     let fixture = try AppCoreFixture()
     fixture.fake.resolutionModes[fixture.display.selector] = .readable([
-      mode("res-4k-120-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 120),
-      mode("res-1080-60-lodpi", logical: (1920, 1080), backing: (1920, 1080), hidpi: false, hz: 60),
+      .mode(id: "res-4k-120-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 120),
+      .mode(id: "res-1080-60-lodpi", logical: (1920, 1080), backing: (1920, 1080), hidpi: false, hz: 60),
     ])
     _ = try fixture.core.addProfile(for: fixture.display.selector)
 
@@ -150,14 +167,16 @@ final class ProfileTests: XCTestCase {
     let fixture = try AppCoreFixture()
     let profile = try fixture.core.addProfile(for: fixture.display.selector)
 
+    var display = try XCTUnwrap(fixture.core.menuState().displays.first)
+    XCTAssertEqual(display.currentItems.filter(\.isSelected).map(\.name), ["#1"])
+
     try fixture.core.renameProfile(profile.id, for: fixture.display.selector, to: "My HDR Profile")
 
-    let display = try XCTUnwrap(fixture.core.menuState().displays.first)
+    display = try XCTUnwrap(fixture.core.menuState().displays.first)
     XCTAssertEqual(display.title, "One")
-    XCTAssertEqual(display.currentTitle, "Profile: #1 My HDR Profile")
+    XCTAssertEqual(display.currentItems.filter(\.isSelected).map(\.name), ["#1 My HDR Profile"])
     XCTAssertEqual(display.currentItems.map(\.title), ["Off", "#1 My HDR Profile"])
     XCTAssertEqual(display.profileItems.map(\.title), ["#1 My HDR Profile"])
-    XCTAssertFalse(display.currentTitle.contains("HDR10"))
   }
 
   func testProfilesCanBeManagedWithoutSelectingThem() throws {
@@ -252,8 +271,8 @@ final class ProfileTests: XCTestCase {
   func testResolutionSettingRefreshesDependentDisplayModeTimingInCurrentProfile() throws {
     let fixture = try AppCoreFixture()
     fixture.fake.resolutionModes[fixture.display.selector] = .readable([
-      mode("res-4k-120-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 120),
-      mode("res-1080-60-lodpi", logical: (1920, 1080), backing: (1920, 1080), hidpi: false, hz: 60),
+      .mode(id: "res-4k-120-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 120),
+      .mode(id: "res-1080-60-lodpi", logical: (1920, 1080), backing: (1920, 1080), hidpi: false, hz: 60),
     ])
     _ = try fixture.core.addProfile(for: fixture.display.selector)
 
@@ -498,13 +517,14 @@ final class ProfileTests: XCTestCase {
     XCTAssertEqual(display.iccProfileItems.count, 2)
     XCTAssertTrue(display.iccProfileItems.contains { $0.title == "Display (Display.icc) #1" })
     XCTAssertTrue(display.iccProfileItems.contains { $0.title == "Display (Display.icc) #2" })
+    XCTAssertEqual(display.iccProfileItems.map(\.name), ["Display", "Display"])
     XCTAssertEqual(display.iccProfileItems.filter(\.isSelected).map(\.url), [second])
 
     fixture.fake.appICCProfilesError = FakeDisplayError("profiles failed")
     display = try XCTUnwrap(fixture.core.menuState().displays.first)
 
     XCTAssertEqual(display.iccProfileItems, [
-      ICCProfileMenuItem(url: nil, title: "Unavailable", isEnabled: false)
+      ICCProfileMenuItem(url: nil, name: "Unknown", title: "Unknown", isEnabled: false)
     ])
   }
 

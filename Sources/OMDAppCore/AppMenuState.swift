@@ -8,7 +8,6 @@ package struct AppMenuState: Equatable, Sendable {
 package struct DisplayMenuState: Equatable, Sendable {
   package var display: DisplayTarget
   package var title: String
-  package var currentTitle: String
   package var currentItems: [CurrentProfileMenuItem]
   package var profileItems: [ProfileMenuItem]
   package var hidpiItems: [ResolutionMenuItem] = []
@@ -23,6 +22,7 @@ package struct DisplayMenuState: Equatable, Sendable {
 
 package struct CurrentProfileMenuItem: Equatable, Sendable {
   package var profileID: UUID?
+  package var name: String
   package var title: String
   package var isSelected: Bool
 }
@@ -53,6 +53,7 @@ package struct DitheringMenuItem: Equatable, Sendable {
 
 package struct ICCProfileMenuItem: Equatable, Sendable {
   package var url: URL?
+  package var name: String
   package var title: String
   package var isSelected = false
   package var isEnabled = true

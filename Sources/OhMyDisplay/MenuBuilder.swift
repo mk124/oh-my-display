@@ -45,7 +45,8 @@ extension AppDelegate {
       submenu.addItem(.separator())
     }
 
-    let current = NSMenuItem(title: display.currentTitle, action: nil, keyEquivalent: "")
+    let current = submenuItem(
+      "Profile", currentValue: display.currentItems.first(where: \.isSelected)?.name)
     current.submenu = currentMenu(display)
     submenu.addItem(current)
     submenu.addItem(.separator())
@@ -139,10 +140,10 @@ extension AppDelegate {
   func facetMenu(_ title: String, items: [ResolutionMenuItem], display: DisplayMenuState)
     -> NSMenuItem
   {
-    let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+    let item = submenuItem(title, currentValue: items.first(where: \.isSelected)?.title)
     let submenu = NSMenu()
     if items.isEmpty {
-      submenu.addItem(disabledItem("Unavailable"))
+      submenu.addItem(disabledItem("Unknown"))
     }
     for facetItem in items {
       let menuItem: NSMenuItem
@@ -166,10 +167,11 @@ extension AppDelegate {
   }
 
   func displayModeMenu(_ display: DisplayMenuState) -> NSMenuItem {
-    let item = NSMenuItem(title: "Display Mode", action: nil, keyEquivalent: "")
+    let item = submenuItem(
+      "Display Mode", currentValue: display.displayModeItems.first(where: \.isSelected)?.title)
     let submenu = NSMenu()
     if display.displayModeItems.isEmpty {
-      submenu.addItem(disabledItem("Unavailable"))
+      submenu.addItem(disabledItem("Unknown"))
     } else {
       for mode in display.displayModeItems {
         let menuItem = NSMenuItem(
@@ -189,7 +191,8 @@ extension AppDelegate {
   }
 
   func ditheringMenu(_ display: DisplayMenuState) -> NSMenuItem {
-    let item = NSMenuItem(title: "Dithering", action: nil, keyEquivalent: "")
+    let item = submenuItem(
+      "Dithering", currentValue: display.ditheringItems.first(where: \.isSelected)?.title)
     item.isEnabled = display.isDitheringEnabled
     let submenu = NSMenu()
     for dithering in display.ditheringItems {
@@ -210,7 +213,8 @@ extension AppDelegate {
   }
 
   func iccProfileMenu(_ display: DisplayMenuState) -> NSMenuItem {
-    let item = NSMenuItem(title: "ICC Profile", action: nil, keyEquivalent: "")
+    let item = submenuItem(
+      "ICC Profile", currentValue: display.iccProfileItems.first(where: \.isSelected)?.name)
     let submenu = NSMenu()
     for profile in display.iccProfileItems {
       let menuItem = NSMenuItem(
@@ -221,6 +225,7 @@ extension AppDelegate {
       menuItem.state = profile.isSelected ? .on : .off
       menuItem.isEnabled = profile.isEnabled
       if let url = profile.url {
+        menuItem.toolTip = url.path
         menuItem.representedObject = ICCProfilePayload(
           display: display.display.selector,
           displayName: display.title,
@@ -230,6 +235,14 @@ extension AppDelegate {
       submenu.addItem(menuItem)
     }
     item.submenu = submenu
+    return item
+  }
+
+  func submenuItem(_ title: String, currentValue: String?) -> NSMenuItem {
+    let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+    if let currentValue {
+      item.badge = NSMenuItemBadge(string: currentValue)
+    }
     return item
   }
 

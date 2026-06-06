@@ -37,11 +37,11 @@ final class ResolutionFacetsTests: XCTestCase {
   }
 
   func testResolutionItemFallsBackToNearestRefreshPreferringHigherOnTie() {
-    let modes = [
-      mode("res-1080-60-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60),
-      mode("res-1440-50-hidpi", logical: (2560, 1440), backing: (5120, 2880), hidpi: true, hz: 50),
-      mode("res-1440-599-hidpi", logical: (2560, 1440), backing: (5120, 2880), hidpi: true, hz: 59.9),
-      mode("res-1440-601-hidpi", logical: (2560, 1440), backing: (5120, 2880), hidpi: true, hz: 60.1),
+    let modes: [ResolutionMode] = [
+      .mode(id: "res-1080-60-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60),
+      .mode(id: "res-1440-50-hidpi", logical: (2560, 1440), backing: (5120, 2880), hidpi: true, hz: 50),
+      .mode(id: "res-1440-599-hidpi", logical: (2560, 1440), backing: (5120, 2880), hidpi: true, hz: 59.9),
+      .mode(id: "res-1440-601-hidpi", logical: (2560, 1440), backing: (5120, 2880), hidpi: true, hz: 60.1),
     ]
 
     let facets = resolutionFacets(
@@ -56,10 +56,10 @@ final class ResolutionFacetsTests: XCTestCase {
   func testBestModeTieBreakPrefersLargerBackingThenLowerID() {
     // The larger backing carries the lexicographically larger id, proving
     // backing area outranks id; equal backings then fall to id order.
-    let duplicates = [
-      mode("res-a-small", logical: (1920, 1080), backing: (2880, 1620), hidpi: true, hz: 60),
-      mode("res-z-large", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60),
-      mode("res-b-large", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60),
+    let duplicates: [ResolutionMode] = [
+      .mode(id: "res-a-small", logical: (1920, 1080), backing: (2880, 1620), hidpi: true, hz: 60),
+      .mode(id: "res-z-large", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60),
+      .mode(id: "res-b-large", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60),
     ]
 
     let best = bestMode(in: duplicates, preferringHiDPI: true, nearRefreshHz: 60)
@@ -85,9 +85,9 @@ final class ResolutionFacetsTests: XCTestCase {
   }
 
   func testHiDPIOffDisabledWhenLogicalHasNoLoDPICounterpart() {
-    let modes = [
-      mode("res-1080-60-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60),
-      mode("res-1440-60-lodpi", logical: (2560, 1440), backing: (2560, 1440), hidpi: false, hz: 60),
+    let modes: [ResolutionMode] = [
+      .mode(id: "res-1080-60-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60),
+      .mode(id: "res-1440-60-lodpi", logical: (2560, 1440), backing: (2560, 1440), hidpi: false, hz: 60),
     ]
 
     let facets = resolutionFacets(
@@ -105,10 +105,10 @@ final class ResolutionFacetsTests: XCTestCase {
   }
 
   func testRefreshItemsClusterJitterAndUseCanonicalTitle() {
-    let modes = [
-      mode("res-1080-120-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 120),
-      mode("res-1080-60-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60),
-      mode("res-1080-60001-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60.001),
+    let modes: [ResolutionMode] = [
+      .mode(id: "res-1080-120-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 120),
+      .mode(id: "res-1080-60-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60),
+      .mode(id: "res-1080-60001-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60.001),
     ]
 
     let facets = resolutionFacets(
@@ -123,8 +123,8 @@ final class ResolutionFacetsTests: XCTestCase {
   }
 
   func testRefreshItemsEmptyWhenAllRefreshUnknown() {
-    let modes = [
-      mode("res-1080-nil-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: nil)
+    let modes: [ResolutionMode] = [
+      .mode(id: "res-1080-nil-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: nil)
     ]
 
     let facets = resolutionFacets(
@@ -139,9 +139,9 @@ final class ResolutionFacetsTests: XCTestCase {
   }
 
   func testRefreshItemsListConcreteValuesOnlyWhenMixedWithNil() {
-    let modes = [
-      mode("res-1080-nil-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: nil),
-      mode("res-1080-60-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60),
+    let modes: [ResolutionMode] = [
+      .mode(id: "res-1080-nil-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: nil),
+      .mode(id: "res-1080-60-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60),
     ]
 
     let facets = resolutionFacets(
@@ -155,11 +155,11 @@ final class ResolutionFacetsTests: XCTestCase {
   }
 
   func testNilAnchorRefreshDegradesToHighestRefreshAndRanksNilLast() {
-    let modes = [
-      mode("res-1080-60-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60),
-      mode("res-1440-nil-hidpi", logical: (2560, 1440), backing: (5120, 2880), hidpi: true, hz: nil),
-      mode("res-1440-60-hidpi", logical: (2560, 1440), backing: (5120, 2880), hidpi: true, hz: 60),
-      mode("res-1440-120-hidpi", logical: (2560, 1440), backing: (5120, 2880), hidpi: true, hz: 120),
+    let modes: [ResolutionMode] = [
+      .mode(id: "res-1080-60-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60),
+      .mode(id: "res-1440-nil-hidpi", logical: (2560, 1440), backing: (5120, 2880), hidpi: true, hz: nil),
+      .mode(id: "res-1440-60-hidpi", logical: (2560, 1440), backing: (5120, 2880), hidpi: true, hz: 60),
+      .mode(id: "res-1440-120-hidpi", logical: (2560, 1440), backing: (5120, 2880), hidpi: true, hz: 120),
     ]
 
     let facets = resolutionFacets(
@@ -199,8 +199,8 @@ final class ResolutionFacetsTests: XCTestCase {
 
   func testUnselectedEnabledItemsAlwaysChangeTheirFacetDimension() throws {
     let modes = externalModes + [
-      mode("res-1080-5994-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 59.94),
-      mode("res-1080-60-hidpi-2", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60),
+      .mode(id: "res-1080-5994-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 59.94),
+      .mode(id: "res-1080-60-hidpi-2", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60),
     ]
     let logical = size(1920, 1080)
     let refresh = 60.0
@@ -235,13 +235,13 @@ final class ResolutionFacetsTests: XCTestCase {
 
 // 4K-style external display: 1920x1080 in HiDPI (120/60Hz) and LoDPI (60Hz),
 // HiDPI-only 2560x1440, LoDPI-only 1280x720 (60/30Hz).
-private let externalModes = [
-  mode("res-1080-120-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 120),
-  mode("res-1080-60-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60),
-  mode("res-1080-60-lodpi", logical: (1920, 1080), backing: (1920, 1080), hidpi: false, hz: 60),
-  mode("res-1440-60-hidpi", logical: (2560, 1440), backing: (5120, 2880), hidpi: true, hz: 60),
-  mode("res-720-60-lodpi", logical: (1280, 720), backing: (1280, 720), hidpi: false, hz: 60),
-  mode("res-720-30-lodpi", logical: (1280, 720), backing: (1280, 720), hidpi: false, hz: 30),
+private let externalModes: [ResolutionMode] = [
+  .mode(id: "res-1080-120-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 120),
+  .mode(id: "res-1080-60-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60),
+  .mode(id: "res-1080-60-lodpi", logical: (1920, 1080), backing: (1920, 1080), hidpi: false, hz: 60),
+  .mode(id: "res-1440-60-hidpi", logical: (2560, 1440), backing: (5120, 2880), hidpi: true, hz: 60),
+  .mode(id: "res-720-60-lodpi", logical: (1280, 720), backing: (1280, 720), hidpi: false, hz: 60),
+  .mode(id: "res-720-30-lodpi", logical: (1280, 720), backing: (1280, 720), hidpi: false, hz: 30),
 ]
 
 private func size(_ width: Int, _ height: Int) -> DisplaySize {

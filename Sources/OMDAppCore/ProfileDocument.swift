@@ -110,9 +110,18 @@ package struct DisplayProfile: Codable, Equatable, Identifiable, Sendable {
   }
 
   package var label: String {
-    if let customName, !customName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-      return "#\(ordinal) \(customName)"
+    "#\(ordinal) \(trimmedCustomName ?? intent.technicalSummary)"
+  }
+
+  package var shortLabel: String {
+    trimmedCustomName.map { "#\(ordinal) \($0)" } ?? "#\(ordinal)"
+  }
+
+  private var trimmedCustomName: String? {
+    guard let customName else {
+      return nil
     }
-    return "#\(ordinal) \(intent.technicalSummary)"
+    let trimmed = customName.trimmingCharacters(in: .whitespacesAndNewlines)
+    return trimmed.isEmpty ? nil : trimmed
   }
 }

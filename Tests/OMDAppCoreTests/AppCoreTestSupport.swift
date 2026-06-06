@@ -25,7 +25,7 @@ final class AppCoreFixture {
     fake.displays = [display]
     fake.states[display.selector] = .state(target: display)
     fake.resolutionModes[display.selector] = .readable([
-      mode("res-4k-120-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 120)
+      .mode(id: "res-4k-120-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 120)
     ])
     fake.displayModes[display.selector] = .readable([
       .mode(id: "mode-rgb-12", bitDepth: 12)
@@ -204,20 +204,22 @@ extension DisplayState {
   }
 }
 
-func mode(
-  _ id: String,
-  logical: (Int, Int),
-  backing: (Int, Int),
-  hidpi: Bool,
-  hz: Double?
-) -> ResolutionMode {
-  ResolutionMode(
-    id: ResolutionModeID(id),
-    logicalResolution: DisplaySize(width: logical.0, height: logical.1),
-    backingResolution: DisplaySize(width: backing.0, height: backing.1),
-    scaleFactor: hidpi ? 2 : 1,
-    isHiDPI: hidpi,
-    refreshHz: hz)
+extension ResolutionMode {
+  static func mode(
+    id: String,
+    logical: (Int, Int),
+    backing: (Int, Int),
+    hidpi: Bool,
+    hz: Double?
+  ) -> ResolutionMode {
+    ResolutionMode(
+      id: ResolutionModeID(id),
+      logicalResolution: DisplaySize(width: logical.0, height: logical.1),
+      backingResolution: DisplaySize(width: backing.0, height: backing.1),
+      scaleFactor: hidpi ? 2 : 1,
+      isHiDPI: hidpi,
+      refreshHz: hz)
+  }
 }
 
 extension DisplayMode {

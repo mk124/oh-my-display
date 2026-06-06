@@ -21,7 +21,6 @@ extension OMDAppCore {
   func makeDisplayMenu(display: DisplayTarget, iccProfiles: [ICCProfile]?) -> DisplayMenuState {
     let record = record(for: display.selector)
     let currentProfile = record.flatMap(currentProfile(in:))
-    let currentTitle = currentProfile?.label ?? "Off"
     let degradedReason = record?.lastResult?.summary
     let state = try? client.readDisplayState(display.selector)
     let resolutionMenus = state.map { makeResolutionFacetItems(for: display.selector, state: $0) }
@@ -33,11 +32,13 @@ extension OMDAppCore {
     let currentItems = [
       CurrentProfileMenuItem(
         profileID: nil,
+        name: "Off",
         title: "Off",
         isSelected: currentProfile == nil),
     ] + profiles.map { profile in
       CurrentProfileMenuItem(
         profileID: profile.id,
+        name: profile.shortLabel,
         title: profile.label,
         isSelected: profile.id == record?.currentProfileID)
     }
@@ -48,7 +49,6 @@ extension OMDAppCore {
     return DisplayMenuState(
       display: display,
       title: display.label,
-      currentTitle: "Profile: \(currentTitle)",
       currentItems: currentItems,
       profileItems: profileItems,
       hidpiItems: resolutionMenus.hidpi,
@@ -133,7 +133,7 @@ extension OMDAppCore {
 
   func makeICCProfileItems(state: DisplayState?, profiles: [ICCProfile]?) -> [ICCProfileMenuItem] {
     guard let profiles else {
-      return [ICCProfileMenuItem(url: nil, title: "Unavailable", isEnabled: false)]
+      return [ICCProfileMenuItem(url: nil, name: "Unknown", title: "Unknown", isEnabled: false)]
     }
 
     let titles = iccProfileTitles(profiles)
@@ -149,6 +149,7 @@ extension OMDAppCore {
     }.map { profile in
       ICCProfileMenuItem(
         url: profile.url,
+        name: profile.name,
         title: titles[profile.url] ?? profile.name,
         isSelected: current.map { ICCProfileIdentity.sameFile($0, profile.url) } ?? false)
     }
