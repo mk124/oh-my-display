@@ -63,17 +63,87 @@ final class ProfileTests: XCTestCase {
     XCTAssertEqual(menu.displays.map(\.title), ["Main", "Secondary"])
   }
 
-  func testMenuStateOnlySelectsReadableCurrentModeIDs() throws {
+  func testMenuStateOnlySelectsReadableCurrentValues() throws {
     let fixture = try AppCoreFixture()
     var state = fixture.fake.states[fixture.display.selector]!
     state.currentResolutionModeID = .unreadable(source: "missing")
+    state.logicalResolution = .unreadable(source: "missing")
+    state.isHiDPI = .unreadable(source: "missing")
+    state.resolutionRefreshHz = .unreadable(source: "missing")
     state.currentDisplayModeID = .unreadable(source: "missing")
     fixture.fake.states[fixture.display.selector] = state
 
     let display = try XCTUnwrap(fixture.core.menuState().displays.first)
 
+    XCTAssertFalse(display.resolutionItems.isEmpty)
     XCTAssertFalse(display.resolutionItems.contains { $0.isSelected })
+    XCTAssertTrue(display.hidpiItems.isEmpty)
+    XCTAssertTrue(display.refreshRateItems.isEmpty)
     XCTAssertFalse(display.displayModeItems.contains { $0.isSelected })
+  }
+
+  func testMenuStateSelectsFacetsByValuesWhenCurrentIDIsOrphan() throws {
+    let fixture = try AppCoreFixture()
+    var state = fixture.fake.states[fixture.display.selector]!
+    state.currentResolutionModeID = .readable(ResolutionModeID("orphan-suffix-2"))
+    fixture.fake.states[fixture.display.selector] = state
+
+    let display = try XCTUnwrap(fixture.core.menuState().displays.first)
+
+    XCTAssertEqual(display.resolutionItems.filter(\.isSelected).map(\.title), ["1920x1080"])
+    XCTAssertEqual(display.hidpiItems.filter(\.isSelected).map(\.title), ["On"])
+    XCTAssertEqual(display.refreshRateItems.filter(\.isSelected).map(\.title), ["120Hz"])
+  }
+
+  func testMenuStateFacetListsFollowDegradationMatrix() throws {
+    let fixture = try AppCoreFixture()
+    fixture.fake.resolutionModes[fixture.display.selector] = .readable([
+      mode("res-4k-120-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 120),
+      mode("res-1080-60-lodpi", logical: (1920, 1080), backing: (1920, 1080), hidpi: false, hz: 60),
+    ])
+
+    var display = try XCTUnwrap(fixture.core.menuState().displays.first)
+    XCTAssertEqual(display.resolutionItems.map(\.title), ["1920x1080"])
+    XCTAssertEqual(display.hidpiItems.map(\.isEnabled), [true, true])
+    XCTAssertEqual(display.refreshRateItems.map(\.title), ["120Hz"])
+
+    fixture.fake.resolutionModes[fixture.display.selector] = .readable([
+      mode("res-4k-nil-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: nil)
+    ])
+
+    display = try XCTUnwrap(fixture.core.menuState().displays.first)
+    XCTAssertEqual(display.resolutionItems.map(\.title), ["1920x1080"])
+    XCTAssertEqual(display.hidpiItems.map(\.isEnabled), [true, false])
+    XCTAssertTrue(display.refreshRateItems.isEmpty)
+
+    fixture.fake.resolutionModes[fixture.display.selector] = .readable([])
+
+    display = try XCTUnwrap(fixture.core.menuState().displays.first)
+    XCTAssertTrue(display.resolutionItems.isEmpty)
+    XCTAssertTrue(display.hidpiItems.isEmpty)
+    XCTAssertTrue(display.refreshRateItems.isEmpty)
+  }
+
+  func testDirectResolutionSettingPersistsOnlyWhenCurrentProfileIsOn() throws {
+    let fixture = try AppCoreFixture()
+    fixture.fake.resolutionModes[fixture.display.selector] = .readable([
+      mode("res-4k-120-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 120),
+      mode("res-1080-60-lodpi", logical: (1920, 1080), backing: (1920, 1080), hidpi: false, hz: 60),
+    ])
+    _ = try fixture.core.addProfile(for: fixture.display.selector)
+
+    _ = try fixture.core.setResolutionMode(
+      ResolutionModeID("res-1080-60-lodpi"),
+      for: fixture.display.selector)
+    var document = try ProfileStore(documentURL: fixture.documentURL).load()
+    XCTAssertEqual(document.displays[0].profiles[0].intent.resolution?.isHiDPI, false)
+
+    try fixture.core.setCurrentOff(for: fixture.display.selector)
+    _ = try fixture.core.setResolutionMode(
+      ResolutionModeID("res-4k-120-hidpi"),
+      for: fixture.display.selector)
+    document = try ProfileStore(documentURL: fixture.documentURL).load()
+    XCTAssertEqual(document.displays[0].profiles[0].intent.resolution?.isHiDPI, false)
   }
 
   func testCustomProfileNameHidesTechnicalSummaryInMenus() throws {
@@ -182,20 +252,8 @@ final class ProfileTests: XCTestCase {
   func testResolutionSettingRefreshesDependentDisplayModeTimingInCurrentProfile() throws {
     let fixture = try AppCoreFixture()
     fixture.fake.resolutionModes[fixture.display.selector] = .readable([
-      ResolutionMode(
-        id: ResolutionModeID("res-4k-120-hidpi"),
-        logicalResolution: DisplaySize(width: 1920, height: 1080),
-        backingResolution: DisplaySize(width: 3840, height: 2160),
-        scaleFactor: 2,
-        isHiDPI: true,
-        refreshHz: 120),
-      ResolutionMode(
-        id: ResolutionModeID("res-1080-60-lodpi"),
-        logicalResolution: DisplaySize(width: 1920, height: 1080),
-        backingResolution: DisplaySize(width: 1920, height: 1080),
-        scaleFactor: 1,
-        isHiDPI: false,
-        refreshHz: 60),
+      mode("res-4k-120-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 120),
+      mode("res-1080-60-lodpi", logical: (1920, 1080), backing: (1920, 1080), hidpi: false, hz: 60),
     ])
     _ = try fixture.core.addProfile(for: fixture.display.selector)
 

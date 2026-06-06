@@ -11,7 +11,9 @@ package struct DisplayMenuState: Equatable, Sendable {
   package var currentTitle: String
   package var currentItems: [CurrentProfileMenuItem]
   package var profileItems: [ProfileMenuItem]
+  package var hidpiItems: [ResolutionMenuItem] = []
   package var resolutionItems: [ResolutionMenuItem]
+  package var refreshRateItems: [ResolutionMenuItem] = []
   package var displayModeItems: [DisplayModeMenuItem]
   package var ditheringItems: [DitheringMenuItem] = []
   package var isDitheringEnabled = true
@@ -31,9 +33,10 @@ package struct ProfileMenuItem: Equatable, Sendable {
 }
 
 package struct ResolutionMenuItem: Equatable, Sendable {
-  package var id: ResolutionModeID
+  package var id: ResolutionModeID?
   package var title: String
   package var isSelected: Bool
+  package var isEnabled = true
 }
 
 package struct DisplayModeMenuItem: Equatable, Sendable {

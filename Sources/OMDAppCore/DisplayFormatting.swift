@@ -56,24 +56,6 @@ extension DisplaySize {
   }
 }
 
-func resolutionSort(_ lhs: ResolutionMode, _ rhs: ResolutionMode) -> Bool {
-  let lhsArea = lhs.backingResolution.width * lhs.backingResolution.height
-  let rhsArea = rhs.backingResolution.width * rhs.backingResolution.height
-  if lhsArea != rhsArea {
-    return lhsArea < rhsArea
-  }
-  if lhs.backingResolution.width != rhs.backingResolution.width {
-    return lhs.backingResolution.width < rhs.backingResolution.width
-  }
-  if lhs.refreshHz != rhs.refreshHz {
-    return (lhs.refreshHz ?? 0) > (rhs.refreshHz ?? 0)
-  }
-  if lhs.isHiDPI != rhs.isHiDPI {
-    return lhs.isHiDPI && !rhs.isHiDPI
-  }
-  return lhs.id.rawValue < rhs.id.rawValue
-}
-
 func displayModeSort(_ lhs: DisplayMode, _ rhs: DisplayMode) -> Bool {
   if lhs.hdrMode != rhs.hdrMode {
     return hdrRank(lhs.hdrMode) < hdrRank(rhs.hdrMode)
@@ -151,19 +133,6 @@ func chromaRank(_ value: DisplayChroma) -> Int {
   case .unknown:
     return 4
   }
-}
-
-func resolutionTitle(_ mode: ResolutionMode) -> String {
-  let scale = String(format: "%.2g", mode.scaleFactor)
-  let hidpi = mode.isHiDPI ? "HiDPI" : "LoDPI"
-  return [
-    "\(mode.logicalResolution)",
-    "->",
-    "\(mode.backingResolution)",
-    "\(scale)x",
-    hidpi,
-    mode.refreshHz.map(formatHz),
-  ].compactMap { $0 }.joined(separator: " ")
 }
 
 func displayModeTitle(_ mode: DisplayMode) -> String {

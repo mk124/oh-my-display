@@ -25,13 +25,7 @@ final class AppCoreFixture {
     fake.displays = [display]
     fake.states[display.selector] = .state(target: display)
     fake.resolutionModes[display.selector] = .readable([
-      ResolutionMode(
-        id: ResolutionModeID("res-4k-120-hidpi"),
-        logicalResolution: DisplaySize(width: 1920, height: 1080),
-        backingResolution: DisplaySize(width: 3840, height: 2160),
-        scaleFactor: 2,
-        isHiDPI: true,
-        refreshHz: 120)
+      mode("res-4k-120-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 120)
     ])
     fake.displayModes[display.selector] = .readable([
       .mode(id: "mode-rgb-12", bitDepth: 12)
@@ -100,6 +94,9 @@ final class FakeDisplayController: DisplayClient, @unchecked Sendable {
       if let refresh = mode.refreshHz {
         state.resolutionRefreshHz = .readable(refresh)
         state.outputTimingRefreshHz = .readable(refresh)
+      } else {
+        state.resolutionRefreshHz = .unreadable(source: "fake")
+        state.outputTimingRefreshHz = .unreadable(source: "fake")
       }
       states[display] = state
     }
@@ -205,6 +202,22 @@ extension DisplayState {
       iccProfileURL: .unreadable(source: "not configured")
     )
   }
+}
+
+func mode(
+  _ id: String,
+  logical: (Int, Int),
+  backing: (Int, Int),
+  hidpi: Bool,
+  hz: Double?
+) -> ResolutionMode {
+  ResolutionMode(
+    id: ResolutionModeID(id),
+    logicalResolution: DisplaySize(width: logical.0, height: logical.1),
+    backingResolution: DisplaySize(width: backing.0, height: backing.1),
+    scaleFactor: hidpi ? 2 : 1,
+    isHiDPI: hidpi,
+    refreshHz: hz)
 }
 
 extension DisplayMode {

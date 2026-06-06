@@ -24,7 +24,8 @@ extension OMDAppCore {
     let currentTitle = currentProfile?.label ?? "Off"
     let degradedReason = record?.lastResult?.summary
     let state = try? client.readDisplayState(display.selector)
-    let resolutionItems = state.flatMap { try? makeResolutionItems(for: display.selector, state: $0) } ?? []
+    let resolutionMenus = state.map { makeResolutionFacetItems(for: display.selector, state: $0) }
+      ?? (hidpi: [], resolution: [], refreshRate: [])
     let displayModeItems = state.flatMap { try? makeDisplayModeItems(for: display.selector, state: $0) } ?? []
     let ditheringItems = makeDitheringItems(state: state)
     let iccProfileItems = makeICCProfileItems(state: state, profiles: iccProfiles)
@@ -50,7 +51,9 @@ extension OMDAppCore {
       currentTitle: "Profile: \(currentTitle)",
       currentItems: currentItems,
       profileItems: profileItems,
-      resolutionItems: resolutionItems,
+      hidpiItems: resolutionMenus.hidpi,
+      resolutionItems: resolutionMenus.resolution,
+      refreshRateItems: resolutionMenus.refreshRate,
       displayModeItems: displayModeItems,
       ditheringItems: ditheringItems.items,
       isDitheringEnabled: ditheringItems.isEnabled,
@@ -59,25 +62,19 @@ extension OMDAppCore {
     )
   }
 
-  func makeResolutionItems(for display: DisplaySelector) throws -> [ResolutionMenuItem] {
-    let state = try client.readDisplayState(display)
-    return try makeResolutionItems(for: display, state: state)
-  }
-
-  func makeResolutionItems(for display: DisplaySelector, state: DisplayState) throws
-    -> [ResolutionMenuItem]
+  func makeResolutionFacetItems(for display: DisplaySelector, state: DisplayState)
+    -> (hidpi: [ResolutionMenuItem], resolution: [ResolutionMenuItem], refreshRate: [ResolutionMenuItem])
   {
-    let currentID = readableValue(state.currentResolutionModeID)
-    let result = try client.listResolutionModes(display)
-    guard result.readability != .unreadable else {
-      return []
+    guard let result = try? client.listResolutionModes(display),
+      result.readability != .unreadable
+    else {
+      return ([], [], [])
     }
-    return result.items.sorted(by: resolutionSort).map { mode in
-      ResolutionMenuItem(
-        id: mode.id,
-        title: resolutionTitle(mode),
-        isSelected: mode.id == currentID)
-    }
+    return resolutionFacets(
+      modes: result.items,
+      currentLogical: readableValue(state.logicalResolution),
+      currentHiDPI: readableValue(state.isHiDPI),
+      currentRefreshHz: readableValue(state.resolutionRefreshHz))
   }
 
   func makeDisplayModeItems(for display: DisplaySelector) throws -> [DisplayModeMenuItem] {

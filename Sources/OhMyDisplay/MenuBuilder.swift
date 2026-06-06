@@ -49,7 +49,9 @@ extension AppDelegate {
     current.submenu = currentMenu(display)
     submenu.addItem(current)
     submenu.addItem(.separator())
-    submenu.addItem(resolutionMenu(display))
+    submenu.addItem(facetMenu("HiDPI", items: display.hidpiItems, display: display))
+    submenu.addItem(facetMenu("Resolution", items: display.resolutionItems, display: display))
+    submenu.addItem(facetMenu("Refresh Rate", items: display.refreshRateItems, display: display))
     submenu.addItem(displayModeMenu(display))
     submenu.addItem(ditheringMenu(display))
     submenu.addItem(iccProfileMenu(display))
@@ -134,24 +136,30 @@ extension AppDelegate {
     return item
   }
 
-  func resolutionMenu(_ display: DisplayMenuState) -> NSMenuItem {
-    let item = NSMenuItem(title: "Resolution", action: nil, keyEquivalent: "")
+  func facetMenu(_ title: String, items: [ResolutionMenuItem], display: DisplayMenuState)
+    -> NSMenuItem
+  {
+    let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
     let submenu = NSMenu()
-    if display.resolutionItems.isEmpty {
+    if items.isEmpty {
       submenu.addItem(disabledItem("Unavailable"))
-    } else {
-      for resolution in display.resolutionItems {
-        let menuItem = NSMenuItem(
-          title: resolution.title,
+    }
+    for facetItem in items {
+      let menuItem: NSMenuItem
+      if let modeID = facetItem.id, facetItem.isEnabled {
+        menuItem = NSMenuItem(
+          title: facetItem.title,
           action: #selector(setResolution(_:)),
           keyEquivalent: "")
         menuItem.target = self
-        menuItem.state = resolution.isSelected ? .on : .off
         menuItem.representedObject = ResolutionPayload(
           display: display.display.selector,
-          modeID: resolution.id)
-        submenu.addItem(menuItem)
+          modeID: modeID)
+      } else {
+        menuItem = disabledItem(facetItem.title)
       }
+      menuItem.state = facetItem.isSelected ? .on : .off
+      submenu.addItem(menuItem)
     }
     item.submenu = submenu
     return item
