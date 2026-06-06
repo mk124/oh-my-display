@@ -10,6 +10,8 @@
   <string>OhMyDisplay</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleShortVersionString</key>
