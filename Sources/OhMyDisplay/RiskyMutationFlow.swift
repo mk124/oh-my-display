@@ -16,10 +16,8 @@ extension AppDelegate {
     }
     beginRiskyMutation()
     defer { endRiskyMutation() }
-    suppressOwnEvents()
     let outcome: MutationOutcome
     do { outcome = try operation(core) } catch {
-      suppressOwnEvents()
       showError(AppMenuError(restoreAfterFailure(baseline, originalError: error, core: core, restore: restore)))
       rebuildMenu()
       return
@@ -27,7 +25,6 @@ extension AppDelegate {
 
     guard outcome.succeeded else {
       if outcome.attemptedMutation {
-        suppressOwnEvents()
         let restoreResult = try restore(core, baseline)
         if !restoreResult.succeeded {
           showError(AppMenuError("Mutation failed: \(outcome.summary). Restore failed: \(restoreResult.summary). \(core.turnCurrentOff(for: display).message)"))
@@ -41,7 +38,6 @@ extension AppDelegate {
     }
 
     guard confirmKeepChanges() else {
-      suppressOwnEvents()
       let restoreResult = try restore(core, baseline)
       if !restoreResult.succeeded { showError(AppMenuError("Restore failed: \(restoreResult.summary). \(core.turnCurrentOff(for: display).message)")) }
       rebuildMenu()
@@ -49,7 +45,6 @@ extension AppDelegate {
     }
 
     do { try commit(core) } catch {
-      suppressOwnEvents()
       let restoreResult = try restore(core, baseline)
       if restoreResult.succeeded {
         showError(AppMenuError("Keep failed: \(error). Previous display state was restored."))
@@ -72,13 +67,14 @@ extension AppDelegate {
     } catch { return "Mutation failed: \(originalError). Restore threw: \(error). " + core.turnCurrentOff(for: baseline.display).message }
   }
 
-  func beginRiskyMutation() {
-    riskyMutationDepth += 1
-    reconcileTimer?.invalidate()
-    reconcileTimer = nil
-  }
+  func beginRiskyMutation() { riskyMutationDepth += 1 }
 
-  func endRiskyMutation() { riskyMutationDepth -= 1 }
+  // The flow-end check corrects any external interference whose events were ignored
+  // while the flow (including its confirmation modal) was in flight.
+  func endRiskyMutation() {
+    riskyMutationDepth -= 1
+    if riskyMutationDepth == 0 { check(trigger: .displayChange) }
+  }
 
   func confirmKeepChanges() -> Bool {
     let alert = NSAlert()

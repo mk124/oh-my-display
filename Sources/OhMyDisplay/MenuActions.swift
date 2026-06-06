@@ -121,22 +121,18 @@ extension AppDelegate {
     do {
       let core = try requireCore()
       beginSafeMutation()
-      defer {
-        endSafeMutation()
-        rebuildMenu()
-        flushPendingReconcile()
-      }
-      suppressOwnEvents()
+      defer { endSafeMutation() }
       let result = try action(core)
       if let message = result.message { showError(AppMenuError(message)) }
     } catch { showError(error) }
   }
 
-  func beginSafeMutation() {
-    safeMutationDepth += 1
-    reconcileTimer?.invalidate()
-    reconcileTimer = nil
-  }
+  func beginSafeMutation() { safeMutationDepth += 1 }
 
-  func endSafeMutation() { safeMutationDepth -= 1 }
+  // The flow-end check both reflects the mutation in the menu and corrects any
+  // external interference whose events were ignored while the flow was in flight.
+  func endSafeMutation() {
+    safeMutationDepth -= 1
+    if safeMutationDepth == 0 { check(trigger: .displayChange) }
+  }
 }

@@ -43,6 +43,8 @@ package struct DisplayReconcileResult: Equatable, Sendable {
 package enum DisplayReconcileOutcome: Equatable, Sendable {
   case skipped(reason: ReconcileSkipReason, profileID: UUID?)
   case applied(profileID: UUID, result: ProfileApplyResult)
+  // Enforcement exhausted its attempt budget; the profile was turned off.
+  case gaveUp(profileID: UUID, currentOff: CurrentOffUpdate)
 }
 
 package struct ProfileApplyResult: Equatable, Sendable {

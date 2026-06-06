@@ -4,11 +4,9 @@ import OMDAppCore
 @MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
   var core: OMDAppCore?
   let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-  var reconcileTimer: Timer?
-  var suppressEventsUntil: Date?
+  var isChecking = false
   var riskyMutationDepth = 0
   var safeMutationDepth = 0
-  var displayEventCoalescer = DisplayEventCoalescer()
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     do {
@@ -16,7 +14,7 @@ import OMDAppCore
       configureStatusItem()
       installEventObservers()
       rebuildMenu()
-      runReconcile(trigger: .startup, showErrors: false)
+      check(trigger: .startup)
     } catch {
       configureStatusItem()
       rebuildMenu()

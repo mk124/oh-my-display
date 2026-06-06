@@ -26,6 +26,28 @@ extension OMDAppCore {
       isVRR: readableValue(state.isVRR))
   }
 
+  // Read-only mirror of apply: true when every axis the intent locks already holds.
+  // Only axes present in the intent are compared; an unreadable current value counts
+  // as satisfied -- an unverifiable axis must not drive correction retries.
+  func intentSatisfied(_ intent: DisplayProfileIntent, for display: DisplaySelector) throws -> Bool {
+    let state = try client.readDisplayState(display)
+    if let resolution = intent.resolution {
+      guard axisSatisfied(state.logicalResolution, lockedTo: resolution.logicalResolution),
+        axisSatisfied(state.backingResolution, lockedTo: resolution.backingResolution), axisSatisfied(state.scaleFactor, near: resolution.scaleFactor),
+        axisSatisfied(state.isHiDPI, lockedTo: resolution.isHiDPI), axisSatisfied(state.resolutionRefreshHz, near: resolution.refreshHz)
+      else { return false }
+    }
+    if let displayMode = intent.displayMode {
+      guard axisSatisfied(state.outputTimingResolution, lockedTo: displayMode.outputTimingResolution),
+        axisSatisfied(state.outputTimingRefreshHz, near: displayMode.outputTimingRefreshHz), axisSatisfied(state.bitDepth, lockedTo: displayMode.bitDepth),
+        axisSatisfied(state.encoding, lockedTo: displayMode.encoding), axisSatisfied(state.range, lockedTo: displayMode.range),
+        axisSatisfied(state.chroma, lockedTo: displayMode.chroma), axisSatisfied(state.hdrMode, lockedTo: displayMode.hdrMode),
+        axisSatisfied(state.isVRR, lockedTo: displayMode.isVRR)
+      else { return false }
+    }
+    return axisSatisfied(state.ditheringEnabled, lockedTo: intent.ditheringEnabled) && axisSatisfied(state.iccProfileURL, lockedTo: intent.iccProfileURL)
+  }
+
   func apply(_ intent: DisplayProfileIntent, to display: DisplaySelector) throws -> ProfileApplyResult {
     try apply(intent, to: display, catchingFailures: false)
   }
@@ -108,4 +130,14 @@ extension OMDAppCore {
       document.displays[index.record].profiles[index.profile].isVerified = true
     }
   }
+}
+
+private func axisSatisfied<Value: Equatable>(_ axis: DisplayAxis<Value>, lockedTo expected: Value?) -> Bool {
+  guard let expected, let current = readableValue(axis) else { return true }
+  return current == expected
+}
+
+private func axisSatisfied(_ axis: DisplayAxis<Double>, near expected: Double?) -> Bool {
+  guard let expected, let current = readableValue(axis) else { return true }
+  return approximatelyEqual(current, expected)
 }

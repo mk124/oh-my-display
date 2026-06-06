@@ -45,6 +45,8 @@ final class FakeDisplayController: DisplayClient, @unchecked Sendable {
   var displayModes: [DisplaySelector: DisplayListResult<DisplayMode>] = [:]
   var displayModesError: Error?
   var resolutionSetResult = DisplaySetResult.applied()
+  // false simulates a display that accepts the set call but never lands on the mode.
+  var resolutionSetUpdatesState = true
   var displayModeSetResult = DisplaySetResult.applied()
   var ditheringSetResult = DisplaySetResult.applied()
   var iccSetResult = DisplaySetResult.applied()
@@ -81,7 +83,11 @@ final class FakeDisplayController: DisplayClient, @unchecked Sendable {
     -> DisplaySetResult
   {
     setResolutionCalls.append(modeID.rawValue)
-    if resolutionSetResult.status == .applied,
+    // Mirrors the live service contract: a set that would succeed no-ops when already current.
+    if resolutionSetResult.status == .applied, let state = states[display], readableValue(state.currentResolutionModeID) == modeID {
+      return .noOp("Requested resolution mode is already current")
+    }
+    if resolutionSetResult.status == .applied, resolutionSetUpdatesState,
       let mode = resolutionModes[display]?.items.first(where: { $0.id == modeID }),
       var state = states[display]
     {
@@ -112,6 +118,9 @@ final class FakeDisplayController: DisplayClient, @unchecked Sendable {
 
   func setDisplayMode(_ display: DisplaySelector, modeID: DisplayModeID) throws -> DisplaySetResult {
     setDisplayModeCalls.append(modeID.rawValue)
+    if displayModeSetResult.status == .applied, let state = states[display], readableValue(state.currentDisplayModeID) == modeID {
+      return .noOp("Requested display mode is already current")
+    }
     if displayModeSetResult.status == .applied,
       let mode = displayModes[display]?.items.first(where: { $0.id == modeID }),
       var state = states[display]
@@ -137,6 +146,9 @@ final class FakeDisplayController: DisplayClient, @unchecked Sendable {
   func setDithering(_ display: DisplaySelector, enabled: Bool) throws -> DisplaySetResult {
     setDitheringCalls.append(enabled)
     let result = ditheringSetResults.isEmpty ? ditheringSetResult : ditheringSetResults.removeFirst()
+    if result.status == .applied, let state = states[display], readableValue(state.ditheringEnabled) == enabled {
+      return .noOp("Requested dithering state is already current")
+    }
     if result.status == .applied || result.status == .noOp,
       var state = states[display]
     {
@@ -160,6 +172,9 @@ final class FakeDisplayController: DisplayClient, @unchecked Sendable {
   func setICCProfile(_ display: DisplaySelector, profileURL: URL) throws -> DisplaySetResult {
     setICCCalls.append(profileURL)
     let result = iccSetResults.isEmpty ? iccSetResult : iccSetResults.removeFirst()
+    if result.status == .applied, let state = states[display], readableValue(state.iccProfileURL) == profileURL {
+      return .noOp("Requested ICC profile is already current")
+    }
     if result.status == .applied || result.status == .noOp,
       var state = states[display]
     {

@@ -13,49 +13,33 @@ extension AppDelegate {
     CGDisplayRemoveReconfigurationCallback(displayReconfigurationCallback, Unmanaged.passUnretained(self).toOpaque())
   }
 
-  @objc func workspaceDidWake(_ notification: Notification) { scheduleReconcile(trigger: .wake) }
+  @objc func workspaceDidWake(_ notification: Notification) { check(trigger: .wake) }
 
-  func scheduleReconcile(trigger: DisplayEventTrigger, bypassSuppression: Bool = false) {
-    guard riskyMutationDepth == 0 else { return }
-    guard safeMutationDepth == 0 else {
-      displayEventCoalescer.record(trigger)
-      return
-    }
-    if !bypassSuppression, let suppressEventsUntil, suppressEventsUntil > Date() { return }
-    reconcileTimer?.invalidate()
-    reconcileTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { [weak self] _ in
-      Task { @MainActor in self?.runReconcile(trigger: trigger, showErrors: false) }
-    }
-  }
-
-  func runReconcile(trigger: DisplayEventTrigger, showErrors: Bool) {
-    guard riskyMutationDepth == 0 else { return }
-    guard safeMutationDepth == 0 else {
-      displayEventCoalescer.record(trigger)
-      return
-    }
-    guard let core else { return }
+  // Every completed reconfiguration prompts one state comparison against the profiles;
+  // mismatches correct with an attempt budget owned by OMDAppCore.reconcile. The flag
+  // stops the nested run loop of a gave-up alert from re-entering reconcile; mutation
+  // flows are covered by the check their end fires.
+  func check(trigger: DisplayEventTrigger) {
+    guard !isChecking, riskyMutationDepth == 0, safeMutationDepth == 0, let core else { return }
+    isChecking = true
+    defer { isChecking = false }
     do {
-      suppressOwnEvents()
-      _ = try core.reconcile(trigger: trigger)
+      let results = try core.reconcile(trigger: trigger)
       rebuildMenu()
-    } catch {
-      if showErrors { showError(error) }
-      rebuildMenu()
-    }
-  }
-
-  func suppressOwnEvents() { suppressEventsUntil = Date().addingTimeInterval(3) }
-
-  func flushPendingReconcile() {
-    guard let trigger = displayEventCoalescer.takePending() else { return }
-    suppressEventsUntil = nil
-    scheduleReconcile(trigger: trigger, bypassSuppression: true)
+      for result in results {
+        if case .gaveUp(_, let currentOff) = result.outcome {
+          let text = "\(result.display.label): profile enforcement gave up after 3 attempts. \(currentOff.message) Reselect a profile to re-enable."
+          showError(AppMenuError(text))
+        }
+      }
+    } catch { rebuildMenu() }
   }
 }
 
-private let displayReconfigurationCallback: CGDisplayReconfigurationCallBack = { _, _, userInfo in
-  guard let userInfo else { return }
+// Begin-phase callbacks carry no readable state yet (kCGDisplayBeginConfigurationFlag);
+// only completed reconfigurations prompt a check, and never from inside the callback.
+private let displayReconfigurationCallback: CGDisplayReconfigurationCallBack = { _, flags, userInfo in
+  guard let userInfo, !flags.contains(.beginConfigurationFlag) else { return }
   let delegate = Unmanaged<AppDelegate>.fromOpaque(userInfo).takeUnretainedValue()
-  Task { @MainActor in delegate.scheduleReconcile(trigger: .displayChange) }
+  Task { @MainActor in delegate.check(trigger: .displayChange) }
 }

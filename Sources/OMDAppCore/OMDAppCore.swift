@@ -10,6 +10,9 @@ package final class OMDAppCore {
   let client: any DisplayClient
   let store: ProfileStore
   var document: ProfileDocument
+  // Correction attempts per display since the last confirmed match (see reconcile).
+  // Runtime-only; same MainActor-confined posture as the mutable `document`.
+  var enforcementAttempts: [DisplaySelector: Int] = [:]
 
   package init(client: any DisplayClient = LiveDisplayClient(), documentURL: URL = OMDAppCore.defaultDocumentURL) throws {
     self.client = client
