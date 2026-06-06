@@ -5,35 +5,19 @@ import XCTest
 
 final class ResolutionFacetsTests: XCTestCase {
   func testResolutionListDeduplicatesAndSortsByLogicalAreaAscending() {
-    let facets = resolutionFacets(
-      modes: externalModes,
-      currentLogical: size(1920, 1080),
-      currentHiDPI: true,
-      currentRefreshHz: 120)
+    let facets = resolutionFacets(modes: externalModes, currentLogical: size(1920, 1080), currentHiDPI: true, currentRefreshHz: 120)
 
     XCTAssertEqual(facets.resolution.map(\.title), ["1280x720", "1920x1080", "2560x1440"])
     XCTAssertEqual(facets.resolution.map(\.isSelected), [false, true, false])
-    XCTAssertEqual(
-      resolutionFacets(
-        modes: externalModes,
-        currentLogical: size(1920, 1080),
-        currentHiDPI: true,
-        currentRefreshHz: 120).resolution,
-      facets.resolution)
+    XCTAssertEqual(resolutionFacets(modes: externalModes, currentLogical: size(1920, 1080), currentHiDPI: true, currentRefreshHz: 120).resolution, facets.resolution)
   }
 
   func testResolutionItemsPreserveCurrentHiDPIThenRefresh() {
-    let facets = resolutionFacets(
-      modes: externalModes,
-      currentLogical: size(1920, 1080),
-      currentHiDPI: true,
-      currentRefreshHz: 60)
+    let facets = resolutionFacets(modes: externalModes, currentLogical: size(1920, 1080), currentHiDPI: true, currentRefreshHz: 60)
 
     // 1080 keeps both axes over the 120Hz and LoDPI variants; 720 has no HiDPI
     // side, so it falls back to LoDPI while still preserving 60Hz over 30Hz.
-    XCTAssertEqual(
-      facets.resolution.compactMap { $0.id?.rawValue },
-      ["res-720-60-lodpi", "res-1080-60-hidpi", "res-1440-60-hidpi"])
+    XCTAssertEqual(facets.resolution.compactMap { $0.id?.rawValue }, ["res-720-60-lodpi", "res-1080-60-hidpi", "res-1440-60-hidpi"])
   }
 
   func testResolutionItemFallsBackToNearestRefreshPreferringHigherOnTie() {
@@ -44,11 +28,7 @@ final class ResolutionFacetsTests: XCTestCase {
       .mode(id: "res-1440-601-hidpi", logical: (2560, 1440), backing: (5120, 2880), hidpi: true, hz: 60.1),
     ]
 
-    let facets = resolutionFacets(
-      modes: modes,
-      currentLogical: size(1920, 1080),
-      currentHiDPI: true,
-      currentRefreshHz: 60)
+    let facets = resolutionFacets(modes: modes, currentLogical: size(1920, 1080), currentHiDPI: true, currentRefreshHz: 60)
 
     XCTAssertEqual(facets.resolution.last?.id?.rawValue, "res-1440-601-hidpi")
   }
@@ -65,23 +45,15 @@ final class ResolutionFacetsTests: XCTestCase {
     let best = bestMode(in: duplicates, preferringHiDPI: true, nearRefreshHz: 60)
 
     XCTAssertEqual(best?.id.rawValue, "res-b-large")
-    XCTAssertEqual(
-      bestMode(in: duplicates.reversed(), preferringHiDPI: true, nearRefreshHz: 60)?.id,
-      best?.id)
+    XCTAssertEqual(bestMode(in: duplicates.reversed(), preferringHiDPI: true, nearRefreshHz: 60)?.id, best?.id)
   }
 
   func testHiDPIItemsResolveOppositeSidePreservingRefresh() {
-    let facets = resolutionFacets(
-      modes: externalModes,
-      currentLogical: size(1920, 1080),
-      currentHiDPI: true,
-      currentRefreshHz: 120)
+    let facets = resolutionFacets(modes: externalModes, currentLogical: size(1920, 1080), currentHiDPI: true, currentRefreshHz: 120)
 
     XCTAssertEqual(facets.hidpi.map(\.title), ["On", "Off"])
     XCTAssertEqual(facets.hidpi.map(\.isSelected), [true, false])
-    XCTAssertEqual(
-      facets.hidpi.compactMap { $0.id?.rawValue },
-      ["res-1080-120-hidpi", "res-1080-60-lodpi"])
+    XCTAssertEqual(facets.hidpi.compactMap { $0.id?.rawValue }, ["res-1080-120-hidpi", "res-1080-60-lodpi"])
   }
 
   func testHiDPIOffDisabledWhenLogicalHasNoLoDPICounterpart() {
@@ -90,11 +62,7 @@ final class ResolutionFacetsTests: XCTestCase {
       .mode(id: "res-1440-60-lodpi", logical: (2560, 1440), backing: (2560, 1440), hidpi: false, hz: 60),
     ]
 
-    let facets = resolutionFacets(
-      modes: modes,
-      currentLogical: size(1920, 1080),
-      currentHiDPI: true,
-      currentRefreshHz: 60)
+    let facets = resolutionFacets(modes: modes, currentLogical: size(1920, 1080), currentHiDPI: true, currentRefreshHz: 60)
 
     // The LoDPI mode at another logical must not leak in: HiDPI never falls
     // back across logical resolutions.
@@ -111,11 +79,7 @@ final class ResolutionFacetsTests: XCTestCase {
       .mode(id: "res-1080-60001-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60.001),
     ]
 
-    let facets = resolutionFacets(
-      modes: modes,
-      currentLogical: size(1920, 1080),
-      currentHiDPI: true,
-      currentRefreshHz: 60)
+    let facets = resolutionFacets(modes: modes, currentLogical: size(1920, 1080), currentHiDPI: true, currentRefreshHz: 60)
 
     XCTAssertEqual(facets.refreshRate.map(\.title), ["120Hz", "60Hz"])
     XCTAssertEqual(facets.refreshRate.map(\.isSelected), [false, true])
@@ -127,11 +91,7 @@ final class ResolutionFacetsTests: XCTestCase {
       .mode(id: "res-1080-nil-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: nil)
     ]
 
-    let facets = resolutionFacets(
-      modes: modes,
-      currentLogical: size(1920, 1080),
-      currentHiDPI: true,
-      currentRefreshHz: nil)
+    let facets = resolutionFacets(modes: modes, currentLogical: size(1920, 1080), currentHiDPI: true, currentRefreshHz: nil)
 
     XCTAssertTrue(facets.refreshRate.isEmpty)
     XCTAssertEqual(facets.resolution.count, 1)
@@ -144,11 +104,7 @@ final class ResolutionFacetsTests: XCTestCase {
       .mode(id: "res-1080-60-hidpi", logical: (1920, 1080), backing: (3840, 2160), hidpi: true, hz: 60),
     ]
 
-    let facets = resolutionFacets(
-      modes: modes,
-      currentLogical: size(1920, 1080),
-      currentHiDPI: true,
-      currentRefreshHz: nil)
+    let facets = resolutionFacets(modes: modes, currentLogical: size(1920, 1080), currentHiDPI: true, currentRefreshHz: nil)
 
     XCTAssertEqual(facets.refreshRate.map(\.title), ["60Hz"])
     XCTAssertFalse(facets.refreshRate[0].isSelected)
@@ -162,21 +118,13 @@ final class ResolutionFacetsTests: XCTestCase {
       .mode(id: "res-1440-120-hidpi", logical: (2560, 1440), backing: (5120, 2880), hidpi: true, hz: 120),
     ]
 
-    let facets = resolutionFacets(
-      modes: modes,
-      currentLogical: size(1920, 1080),
-      currentHiDPI: true,
-      currentRefreshHz: nil)
+    let facets = resolutionFacets(modes: modes, currentLogical: size(1920, 1080), currentHiDPI: true, currentRefreshHz: nil)
 
     XCTAssertEqual(facets.resolution.last?.id?.rawValue, "res-1440-120-hidpi")
   }
 
   func testEmptyModeListYieldsEmptyFacets() {
-    let facets = resolutionFacets(
-      modes: [],
-      currentLogical: size(1920, 1080),
-      currentHiDPI: true,
-      currentRefreshHz: 60)
+    let facets = resolutionFacets(modes: [], currentLogical: size(1920, 1080), currentHiDPI: true, currentRefreshHz: 60)
 
     XCTAssertTrue(facets.hidpi.isEmpty)
     XCTAssertTrue(facets.resolution.isEmpty)
@@ -184,11 +132,7 @@ final class ResolutionFacetsTests: XCTestCase {
   }
 
   func testHiDPIAndRefreshFacetsRequireValueAnchor() {
-    let facets = resolutionFacets(
-      modes: externalModes,
-      currentLogical: nil,
-      currentHiDPI: nil,
-      currentRefreshHz: nil)
+    let facets = resolutionFacets(modes: externalModes, currentLogical: nil, currentHiDPI: nil, currentRefreshHz: nil)
 
     XCTAssertTrue(facets.hidpi.isEmpty)
     XCTAssertTrue(facets.refreshRate.isEmpty)
@@ -205,11 +149,7 @@ final class ResolutionFacetsTests: XCTestCase {
     let logical = size(1920, 1080)
     let refresh = 60.0
 
-    let facets = resolutionFacets(
-      modes: modes,
-      currentLogical: logical,
-      currentHiDPI: true,
-      currentRefreshHz: refresh)
+    let facets = resolutionFacets(modes: modes, currentLogical: logical, currentHiDPI: true, currentRefreshHz: refresh)
 
     // No clickable item may resolve to a mode that leaves its own facet
     // dimension unchanged -- that click would re-apply the current state and
@@ -226,9 +166,7 @@ final class ResolutionFacetsTests: XCTestCase {
     }
   }
 
-  private func resolved(_ item: ResolutionMenuItem, in modes: [ResolutionMode]) throws
-    -> ResolutionMode
-  {
+  private func resolved(_ item: ResolutionMenuItem, in modes: [ResolutionMode]) throws -> ResolutionMode {
     try XCTUnwrap(modes.first { $0.id == item.id })
   }
 }

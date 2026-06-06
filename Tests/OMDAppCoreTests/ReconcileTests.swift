@@ -43,9 +43,7 @@ final class ReconcileTests: XCTestCase {
     let results = try core.reconcile(trigger: .startup)
     document = try ProfileStore(documentURL: fixture.documentURL).load()
 
-    XCTAssertEqual(
-      results.map(\.outcome),
-      [.skipped(reason: .missingCurrentProfile, profileID: missingID)])
+    XCTAssertEqual(results.map(\.outcome), [.skipped(reason: .missingCurrentProfile, profileID: missingID)])
     XCTAssertEqual(document.displays[0].lastResult?.summary, "missingCurrentProfile")
   }
 

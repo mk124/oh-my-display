@@ -3,23 +3,17 @@ import Foundation
 public struct DisplaySelector: Codable, Hashable, Sendable, CustomStringConvertible {
   public var rawValue: String
 
-  public init(_ rawValue: String) {
-    self.rawValue = rawValue
-  }
+  public init(_ rawValue: String) { self.rawValue = rawValue }
 
   public var description: String { rawValue }
 
-  package var isStableIdentity: Bool {
-    rawValue.hasPrefix("uuid:")
-  }
+  package var isStableIdentity: Bool { rawValue.hasPrefix("uuid:") }
 }
 
 public struct ResolutionModeID: Codable, Hashable, Sendable, CustomStringConvertible {
   public var rawValue: String
 
-  public init(_ rawValue: String) {
-    self.rawValue = rawValue
-  }
+  public init(_ rawValue: String) { self.rawValue = rawValue }
 
   public var description: String { rawValue }
 }
@@ -27,9 +21,7 @@ public struct ResolutionModeID: Codable, Hashable, Sendable, CustomStringConvert
 public struct DisplayModeID: Codable, Hashable, Sendable, CustomStringConvertible {
   public var rawValue: String
 
-  public init(_ rawValue: String) {
-    self.rawValue = rawValue
-  }
+  public init(_ rawValue: String) { self.rawValue = rawValue }
 
   public var description: String { rawValue }
 }
@@ -63,46 +55,29 @@ public struct DisplayAxis<Value: Codable & Equatable & Sendable>: Codable, Equat
     self.source = source
   }
 
-  public static func readable(_ value: Value, source: String? = nil) -> Self {
-    Self(value: value, readability: .readable, source: source)
-  }
+  public static func readable(_ value: Value, source: String? = nil) -> Self { Self(value: value, readability: .readable, source: source) }
 
-  public static func unreadable(source: String? = nil) -> Self {
-    Self(value: nil, readability: .unreadable, source: source)
-  }
+  public static func unreadable(source: String? = nil) -> Self { Self(value: nil, readability: .unreadable, source: source) }
 
-  public static func degraded(_ value: Value? = nil, source: String? = nil) -> Self {
-    Self(value: value, readability: .degraded, source: source)
-  }
+  public static func degraded(_ value: Value? = nil, source: String? = nil) -> Self { Self(value: value, readability: .degraded, source: source) }
 }
 
-public struct DisplayListResult<Item: Codable & Equatable & Sendable>: Codable, Equatable,
-  Sendable
-{
+public struct DisplayListResult<Item: Codable & Equatable & Sendable>: Codable, Equatable, Sendable {
   public var readability: AxisReadability
   public var source: String?
   public var reason: String?
   public var items: [Item]
 
-  public init(
-    readability: AxisReadability,
-    source: String? = nil,
-    reason: String? = nil,
-    items: [Item] = []
-  ) {
+  public init(readability: AxisReadability, source: String? = nil, reason: String? = nil, items: [Item] = []) {
     self.readability = readability
     self.source = source
     self.reason = reason
     self.items = items
   }
 
-  public static func readable(_ items: [Item], source: String? = nil) -> Self {
-    Self(readability: .readable, source: source, items: items)
-  }
+  public static func readable(_ items: [Item], source: String? = nil) -> Self { Self(readability: .readable, source: source, items: items) }
 
-  public static func unreadable(_ reason: String, source: String? = nil) -> Self {
-    Self(readability: .unreadable, source: source, reason: reason, items: [])
-  }
+  public static func unreadable(_ reason: String, source: String? = nil) -> Self { Self(readability: .unreadable, source: source, reason: reason, items: []) }
 
   public static func degraded(_ items: [Item], reason: String, source: String? = nil) -> Self {
     Self(readability: .degraded, source: source, reason: reason, items: items)
@@ -125,9 +100,7 @@ public enum DitheringAvailability: String, Codable, Equatable, Sendable {
   case noMatchingActiveFramebuffer
   case ambiguousFramebuffer
 
-  public var canSet: Bool {
-    self == .settable
-  }
+  public var canSet: Bool { self == .settable }
 }
 
 public enum DisplayEncoding: String, Codable, Sendable {
@@ -166,13 +139,7 @@ public struct DisplayTarget: Codable, Equatable, Sendable {
   public var isMain: Bool
   public var isBuiltin: Bool
 
-  public init(
-    selector: DisplaySelector,
-    displayID: UInt32,
-    label: String,
-    isMain: Bool,
-    isBuiltin: Bool
-  ) {
+  public init(selector: DisplaySelector, displayID: UInt32, label: String, isMain: Bool, isBuiltin: Bool) {
     self.selector = selector
     self.displayID = displayID
     self.label = label
@@ -189,14 +156,7 @@ public struct ResolutionMode: Codable, Equatable, Sendable {
   public var isHiDPI: Bool
   public var refreshHz: Double?
 
-  public init(
-    id: ResolutionModeID,
-    logicalResolution: DisplaySize,
-    backingResolution: DisplaySize,
-    scaleFactor: Double,
-    isHiDPI: Bool,
-    refreshHz: Double?
-  ) {
+  public init(id: ResolutionModeID, logicalResolution: DisplaySize, backingResolution: DisplaySize, scaleFactor: Double, isHiDPI: Bool, refreshHz: Double?) {
     self.id = id
     self.logicalResolution = logicalResolution
     self.backingResolution = backingResolution
@@ -223,20 +183,9 @@ public struct DisplayMode: Codable, Equatable, Sendable {
   public var isHighBandwidth: Bool
 
   public init(
-    id: DisplayModeID,
-    outputTimingResolution: DisplaySize,
-    outputTimingRefreshHz: Double?,
-    bitDepth: Int?,
-    encoding: DisplayEncoding,
-    range: DisplayRange = .unknown,
-    chroma: DisplayChroma = .unknown,
-    hdrMode: DisplayHDRMode = .unknown,
-    hdrModeRaw: String? = nil,
-    colorModeRaw: String? = nil,
-    modeDescription: String? = nil,
-    isVirtual: Bool = false,
-    isVRR: Bool = false,
-    isHighBandwidth: Bool = false
+    id: DisplayModeID, outputTimingResolution: DisplaySize, outputTimingRefreshHz: Double?, bitDepth: Int?, encoding: DisplayEncoding,
+    range: DisplayRange = .unknown, chroma: DisplayChroma = .unknown, hdrMode: DisplayHDRMode = .unknown, hdrModeRaw: String? = nil,
+    colorModeRaw: String? = nil, modeDescription: String? = nil, isVirtual: Bool = false, isVRR: Bool = false, isHighBandwidth: Bool = false
   ) {
     self.id = id
     self.outputTimingResolution = outputTimingResolution

@@ -6,9 +6,7 @@ package enum DisplayEventTrigger: String, Codable, Equatable, Sendable {
   case wake
   case displayChange
 
-  var isSteadyState: Bool {
-    self != .startup
-  }
+  var isSteadyState: Bool { self != .startup }
 }
 
 package struct DisplayMutationBaseline: Equatable, Sendable {
@@ -18,13 +16,7 @@ package struct DisplayMutationBaseline: Equatable, Sendable {
   package var ditheringEnabled: Bool?
   package var iccProfileURL: URL?
 
-  package init(
-    display: DisplaySelector,
-    resolutionModeID: ResolutionModeID?,
-    displayModeID: DisplayModeID?,
-    ditheringEnabled: Bool?,
-    iccProfileURL: URL?
-  ) {
+  package init(display: DisplaySelector, resolutionModeID: ResolutionModeID?, displayModeID: DisplayModeID?, ditheringEnabled: Bool?, iccProfileURL: URL?) {
     self.display = display
     self.resolutionModeID = resolutionModeID
     self.displayModeID = displayModeID
@@ -42,10 +34,7 @@ package struct DisplayReconcileResult: Equatable, Sendable {
   package var display: DisplayTarget
   package var outcome: DisplayReconcileOutcome
 
-  package init(
-    display: DisplayTarget,
-    outcome: DisplayReconcileOutcome
-  ) {
+  package init(display: DisplayTarget, outcome: DisplayReconcileOutcome) {
     self.display = display
     self.outcome = outcome
   }
@@ -59,19 +48,13 @@ package enum DisplayReconcileOutcome: Equatable, Sendable {
 package struct ProfileApplyResult: Equatable, Sendable {
   package var operations: [ProfileOperationResult]
 
-  package init(operations: [ProfileOperationResult]) {
-    self.operations = operations
-  }
+  package init(operations: [ProfileOperationResult]) { self.operations = operations }
 
-  package var succeeded: Bool {
-    operations.allSatisfy { $0.result.isSuccessful }
-  }
+  package var succeeded: Bool { operations.allSatisfy { $0.result.isSuccessful } }
 
   package var summary: String {
     operations.map { operation in
-      if let reason = operation.result.reason {
-        return "\(operation.operation.rawValue): \(operation.result.status.rawValue) (\(reason))"
-      }
+      if let reason = operation.result.reason { return "\(operation.operation.rawValue): \(operation.result.status.rawValue) (\(reason))" }
       return "\(operation.operation.rawValue): \(operation.result.status.rawValue)"
     }.joined(separator: "; ")
   }

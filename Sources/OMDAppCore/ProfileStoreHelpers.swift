@@ -14,28 +14,18 @@ extension OMDAppCore {
     document.displays.append(record)
   }
 
-  func record(for display: DisplaySelector) -> DisplayProfileRecord? {
-    document.displays.first { $0.binding.selector == display }
-  }
+  func record(for display: DisplaySelector) -> DisplayProfileRecord? { document.displays.first { $0.binding.selector == display } }
 
-  func recordIndex(for display: DisplaySelector) -> Int? {
-    document.displays.firstIndex { $0.binding.selector == display }
-  }
+  func recordIndex(for display: DisplaySelector) -> Int? { document.displays.firstIndex { $0.binding.selector == display } }
 
   func currentProfile(in record: DisplayProfileRecord) -> DisplayProfile? {
-    guard let currentProfileID = record.currentProfileID else {
-      return nil
-    }
+    guard let currentProfileID = record.currentProfileID else { return nil }
     return record.profiles.first { $0.id == currentProfileID }
   }
 
   func profile(_ profileID: UUID, for display: DisplaySelector) throws -> DisplayProfile {
-    guard let record = record(for: display) else {
-      throw ProfileStoreError.missingDisplay(display.rawValue)
-    }
-    guard let profile = record.profiles.first(where: { $0.id == profileID }) else {
-      throw ProfileStoreError.missingProfile(profileID)
-    }
+    guard let record = record(for: display) else { throw ProfileStoreError.missingDisplay(display.rawValue) }
+    guard let profile = record.profiles.first(where: { $0.id == profileID }) else { throw ProfileStoreError.missingProfile(profileID) }
     return profile
   }
 
@@ -55,7 +45,5 @@ extension OMDAppCore {
     }
   }
 
-  func save() throws {
-    try store.save(document)
-  }
+  func save() throws { try store.save(document) }
 }

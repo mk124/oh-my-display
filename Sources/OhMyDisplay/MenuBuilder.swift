@@ -45,8 +45,7 @@ extension AppDelegate {
       submenu.addItem(.separator())
     }
 
-    let current = submenuItem(
-      "Profile", currentValue: display.currentItems.first(where: \.isSelected)?.name)
+    let current = submenuItem("Profile", currentValue: display.currentItems.first(where: \.isSelected)?.name)
     current.submenu = currentMenu(display)
     submenu.addItem(current)
     submenu.addItem(.separator())
@@ -137,9 +136,7 @@ extension AppDelegate {
     return item
   }
 
-  func facetMenu(_ title: String, items: [ResolutionMenuItem], display: DisplayMenuState)
-    -> NSMenuItem
-  {
+  func facetMenu(_ title: String, items: [ResolutionMenuItem], display: DisplayMenuState) -> NSMenuItem {
     let item = submenuItem(title, currentValue: items.first(where: \.isSelected)?.title)
     let submenu = NSMenu()
     if items.isEmpty {
@@ -167,8 +164,7 @@ extension AppDelegate {
   }
 
   func displayModeMenu(_ display: DisplayMenuState) -> NSMenuItem {
-    let item = submenuItem(
-      "Display Mode", currentValue: display.displayModeItems.first(where: \.isSelected)?.title)
+    let item = submenuItem("Display Mode", currentValue: display.displayModeItems.first(where: \.isSelected)?.title)
     let submenu = NSMenu()
     if display.displayModeItems.isEmpty {
       submenu.addItem(disabledItem("Unknown"))
@@ -191,8 +187,7 @@ extension AppDelegate {
   }
 
   func ditheringMenu(_ display: DisplayMenuState) -> NSMenuItem {
-    let item = submenuItem(
-      "Dithering", currentValue: display.ditheringItems.first(where: \.isSelected)?.title)
+    let item = submenuItem("Dithering", currentValue: display.ditheringItems.first(where: \.isSelected)?.title)
     item.isEnabled = display.isDitheringEnabled
     let submenu = NSMenu()
     for dithering in display.ditheringItems {
@@ -213,8 +208,7 @@ extension AppDelegate {
   }
 
   func iccProfileMenu(_ display: DisplayMenuState) -> NSMenuItem {
-    let item = submenuItem(
-      "ICC Profile", currentValue: display.iccProfileItems.first(where: \.isSelected)?.name)
+    let item = submenuItem("ICC Profile", currentValue: display.iccProfileItems.first(where: \.isSelected)?.name)
     let submenu = NSMenu()
     for profile in display.iccProfileItems {
       let menuItem = NSMenuItem(

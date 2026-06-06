@@ -23,8 +23,7 @@ extension OMDAppCore {
     let currentProfile = record.flatMap(currentProfile(in:))
     let degradedReason = record?.lastResult?.summary
     let state = try? client.readDisplayState(display.selector)
-    let resolutionMenus = state.map { makeResolutionFacetItems(for: display.selector, state: $0) }
-      ?? (hidpi: [], resolution: [], refreshRate: [])
+    let resolutionMenus = state.map { makeResolutionFacetItems(for: display.selector, state: $0) } ?? (hidpi: [], resolution: [], refreshRate: [])
     let displayModeItems = state.flatMap { try? makeDisplayModeItems(for: display.selector, state: $0) } ?? []
     let ditheringItems = makeDitheringItems(state: state)
     let iccProfileItems = makeICCProfileItems(state: state, profiles: iccProfiles)

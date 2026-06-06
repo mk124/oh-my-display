@@ -9,30 +9,10 @@ final class DisplayStateReaderTests: XCTestCase {
     let reader = reader(
       target: target,
       resolution: resolutionMode(
-        id: "res-current",
-        logical: DisplaySize(width: 1920, height: 1080),
-        backing: DisplaySize(width: 3840, height: 2160),
-        scale: 2,
-        hidpi: true
-      ),
+        id: "res-current", logical: DisplaySize(width: 1920, height: 1080), backing: DisplaySize(width: 3840, height: 2160), scale: 2, hidpi: true),
       displayMode: displayMode(
-        id: "mode-current",
-        timing: DisplaySize(width: 3840, height: 2160),
-        bitDepth: 10,
-        encoding: .rgb,
-        range: .full,
-        chroma: .none,
-        hdr: .hdr10,
-        isVRR: true
-      ),
-      dithering: [
-        DitheringFramebuffer(
-          registryID: 10,
-          isExternal: true,
-          isActive: true,
-          enableDither: false)
-      ]
-    )
+        id: "mode-current", timing: DisplaySize(width: 3840, height: 2160), bitDepth: 10, encoding: .rgb, range: .full, chroma: .none, hdr: .hdr10, isVRR: true),
+      dithering: [DitheringFramebuffer(registryID: 10, isExternal: true, isActive: true, enableDither: false)])
 
     let state = try reader.readDisplayState(target.selector)
 
@@ -56,17 +36,8 @@ final class DisplayStateReaderTests: XCTestCase {
   func testUnknownDisplayModeAxesAreDegradedInsteadOfInvented() throws {
     let target = target()
     let reader = reader(
-      target: target,
-      resolution: resolutionMode(id: "res-current"),
-      displayMode: displayMode(
-        id: "mode-current",
-        bitDepth: nil,
-        encoding: .unknown,
-        range: .unknown,
-        chroma: .unknown,
-        hdr: .unknown
-      )
-    )
+      target: target, resolution: resolutionMode(id: "res-current"),
+      displayMode: displayMode(id: "mode-current", bitDepth: nil, encoding: .unknown, range: .unknown, chroma: .unknown, hdr: .unknown))
 
     let state = try reader.readDisplayState(target.selector)
 
@@ -93,96 +64,45 @@ final class DisplayStateReaderTests: XCTestCase {
     XCTAssertEqual(state.isVRR.readability, .unreadable)
   }
 
-  private func reader(
-    target: DisplayTarget,
-    resolution: ResolutionMode?,
-    displayMode: DisplayMode?,
-    dithering: [DitheringFramebuffer] = []
-  ) -> DisplayStateReader {
+  private func reader(target: DisplayTarget, resolution: ResolutionMode?, displayMode: DisplayMode?, dithering: [DitheringFramebuffer] = [])
+    -> DisplayStateReader
+  {
     let resolver = FakeStateResolver(target: target)
     return DisplayStateReader(
-      resolver: resolver,
-      resolutionService: ResolutionModeService(
-        backend: FakeStateResolutionBackend(current: resolution),
-        resolver: resolver
-      ),
-      displayModeService: DisplayModeService(
-        backend: FakeStateDisplayModeBackend(current: displayMode),
-        resolver: resolver
-      ),
-      ditheringService: DitheringService(
-        resolver: resolver,
-        backend: FakeStateDitheringBackend(storedFramebuffers: dithering)
-      ),
-      iccProfileService: ICCProfileService(
-        resolver: resolver,
-        backend: FakeStateICCProfileBackend()
-      )
-    )
+      resolver: resolver, resolutionService: ResolutionModeService(backend: FakeStateResolutionBackend(current: resolution), resolver: resolver),
+      displayModeService: DisplayModeService(backend: FakeStateDisplayModeBackend(current: displayMode), resolver: resolver),
+      ditheringService: DitheringService(resolver: resolver, backend: FakeStateDitheringBackend(storedFramebuffers: dithering)),
+      iccProfileService: ICCProfileService(resolver: resolver, backend: FakeStateICCProfileBackend()))
   }
 
   private func target() -> DisplayTarget {
-    DisplayTarget(
-      selector: DisplaySelector("uuid:one"),
-      displayID: 1,
-      label: "Display",
-      isMain: true,
-      isBuiltin: false
-    )
+    DisplayTarget(selector: DisplaySelector("uuid:one"), displayID: 1, label: "Display", isMain: true, isBuiltin: false)
   }
 
   private func resolutionMode(
-    id: String,
-    logical: DisplaySize = DisplaySize(width: 1920, height: 1080),
-    backing: DisplaySize = DisplaySize(width: 1920, height: 1080),
-    scale: Double = 1,
+    id: String, logical: DisplaySize = DisplaySize(width: 1920, height: 1080), backing: DisplaySize = DisplaySize(width: 1920, height: 1080), scale: Double = 1,
     hidpi: Bool = false
   ) -> ResolutionMode {
-    ResolutionMode(
-      id: ResolutionModeID(id),
-      logicalResolution: logical,
-      backingResolution: backing,
-      scaleFactor: scale,
-      isHiDPI: hidpi,
-      refreshHz: 60
-    )
+    ResolutionMode(id: ResolutionModeID(id), logicalResolution: logical, backingResolution: backing, scaleFactor: scale, isHiDPI: hidpi, refreshHz: 60)
   }
 
   private func displayMode(
-    id: String,
-    timing: DisplaySize = DisplaySize(width: 1920, height: 1080),
-    bitDepth: Int? = 8,
-    encoding: DisplayEncoding = .rgb,
-    range: DisplayRange = .full,
-    chroma: DisplayChroma = .none,
-    hdr: DisplayHDRMode = .sdr,
-    isVRR: Bool = false
+    id: String, timing: DisplaySize = DisplaySize(width: 1920, height: 1080), bitDepth: Int? = 8, encoding: DisplayEncoding = .rgb, range: DisplayRange = .full,
+    chroma: DisplayChroma = .none, hdr: DisplayHDRMode = .sdr, isVRR: Bool = false
   ) -> DisplayMode {
     DisplayMode(
-      id: DisplayModeID(id),
-      outputTimingResolution: timing,
-      outputTimingRefreshHz: 60,
-      bitDepth: bitDepth,
-      encoding: encoding,
-      range: range,
-      chroma: chroma,
-      hdrMode: hdr,
-      isVRR: isVRR
-    )
+      id: DisplayModeID(id), outputTimingResolution: timing, outputTimingRefreshHz: 60, bitDepth: bitDepth, encoding: encoding, range: range, chroma: chroma,
+      hdrMode: hdr, isVRR: isVRR)
   }
 }
 
 private struct FakeStateResolver: DisplayResolving, DisplayListing {
   var target: DisplayTarget
 
-  func listTargets() throws -> [DisplayTarget] {
-    [target]
-  }
+  func listTargets() throws -> [DisplayTarget] { [target] }
 
   func resolve(_ selector: DisplaySelector) throws -> ResolvedDisplay {
-    guard selector == target.selector else {
-      throw DisplayControlError.displayNotFound(selector.rawValue)
-    }
+    guard selector == target.selector else { throw DisplayControlError.displayNotFound(selector.rawValue) }
     return ResolvedDisplay(target: target, displayID: CGDirectDisplayID(target.displayID))
   }
 }
@@ -190,81 +110,45 @@ private struct FakeStateResolver: DisplayResolving, DisplayListing {
 private struct FakeStateResolutionBackend: ResolutionModeBackend {
   var current: ResolutionMode?
 
-  func resolutionModes(_ displayID: CGDirectDisplayID) -> [ResolutionMode] {
-    current.map { [$0] } ?? []
-  }
+  func resolutionModes(_ displayID: CGDirectDisplayID) -> [ResolutionMode] { current.map { [$0] } ?? [] }
 
-  func currentResolutionMode(_ displayID: CGDirectDisplayID) -> ResolutionMode? {
-    current
-  }
+  func currentResolutionMode(_ displayID: CGDirectDisplayID) -> ResolutionMode? { current }
 
-  func setResolutionMode(
-    _ displayID: CGDirectDisplayID,
-    modeID: ResolutionModeID
-  ) -> DisplaySetResult {
-    .applied()
-  }
+  func setResolutionMode(_ displayID: CGDirectDisplayID, modeID: ResolutionModeID) -> DisplaySetResult { .applied() }
 }
 
 private struct FakeStateDisplayModeBackend: DisplayModeBackend {
   var current: DisplayMode?
 
-  func displayModes(_ displayID: CGDirectDisplayID) -> DisplayListResult<DisplayMode> {
-    .readable(current.map { [$0] } ?? [])
-  }
+  func displayModes(_ displayID: CGDirectDisplayID) -> DisplayListResult<DisplayMode> { .readable(current.map { [$0] } ?? []) }
 
-  func currentDisplayMode(_ displayID: CGDirectDisplayID) -> DisplayMode? {
-    current
-  }
+  func currentDisplayMode(_ displayID: CGDirectDisplayID) -> DisplayMode? { current }
 
-  func setDisplayMode(
-    _ displayID: CGDirectDisplayID,
-    modeID: DisplayModeID
-  ) -> DisplaySetResult {
-    .applied()
-  }
+  func setDisplayMode(_ displayID: CGDirectDisplayID, modeID: DisplayModeID) -> DisplaySetResult { .applied() }
 }
 
 private struct FakeStateDitheringBackend: DitheringBackend {
   var storedFramebuffers: [DitheringFramebuffer]
 
-  func framebuffers() -> [DitheringFramebuffer] {
-    storedFramebuffers
-  }
+  func framebuffers() -> [DitheringFramebuffer] { storedFramebuffers }
 
-  func readDithering(on registryID: UInt64) -> Bool? {
-    storedFramebuffers.first { $0.registryID == registryID }?.enableDither
-  }
+  func readDithering(on registryID: UInt64) -> Bool? { storedFramebuffers.first { $0.registryID == registryID }?.enableDither }
 
-  func setDithering(_ enabled: Bool, on registryID: UInt64) -> Bool {
-    true
-  }
+  func setDithering(_ enabled: Bool, on registryID: UInt64) -> Bool { true }
 }
 
 private struct FakeStateICCProfileBackend: ICCProfileBackend {
-  func isReadableProfile(_ url: URL) -> Bool {
-    true
-  }
+  func isReadableProfile(_ url: URL) -> Bool { true }
 
-  func installedProfiles() throws -> [ICCProfile] {
-    []
-  }
+  func installedProfiles() throws -> [ICCProfile] { [] }
 
-  func installedDisplayProfiles() throws -> [ICCProfile] {
-    []
-  }
+  func installedDisplayProfiles() throws -> [ICCProfile] { [] }
 
-  func deviceID(for displayID: CGDirectDisplayID) -> ICCDisplayDeviceID? {
-    nil
-  }
+  func deviceID(for displayID: CGDirectDisplayID) -> ICCDisplayDeviceID? { nil }
 
-  func profile(for deviceID: ICCDisplayDeviceID) -> ICCProfileReadback? {
-    nil
-  }
+  func profile(for deviceID: ICCDisplayDeviceID) -> ICCProfileReadback? { nil }
 
-  func setCustomProfile(_ profileURL: URL, for deviceID: ICCDisplayDeviceID) -> Bool {
-    true
-  }
+  func setCustomProfile(_ profileURL: URL, for deviceID: ICCDisplayDeviceID) -> Bool { true }
 
   func waitBeforeReadback() {}
 }

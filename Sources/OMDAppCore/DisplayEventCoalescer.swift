@@ -5,9 +5,7 @@ package struct DisplayEventCoalescer: Sendable {
 
   package init() {}
 
-  package mutating func record(_ trigger: DisplayEventTrigger) {
-    pending = trigger
-  }
+  package mutating func record(_ trigger: DisplayEventTrigger) { pending = trigger }
 
   package mutating func takePending() -> DisplayEventTrigger? {
     defer { pending = nil }

@@ -11,11 +11,7 @@ struct VersionCommand: ParsableCommand {
   func run() throws {
     let payload = VersionPayload(cliVersion: omdVersion, coreVersion: omdVersion)
     let output: String
-    if json {
-      output = try OutputRenderer.encode(payload)
-    } else {
-      output = "omd \(omdVersion)\nOMDCore \(omdVersion)\n"
-    }
+    if json { output = try OutputRenderer.encode(payload) } else { output = "omd \(omdVersion)\nOMDCore \(omdVersion)\n" }
     emitAndExit(CommandResult(exitCode: .success, stdout: output))
   }
 }

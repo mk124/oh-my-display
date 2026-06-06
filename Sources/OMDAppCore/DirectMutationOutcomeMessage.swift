@@ -6,20 +6,12 @@ package enum DirectMutationFailure {
 }
 
 package enum DirectMutationOutcomeMessage {
-  package static func message(
-    _ failure: DirectMutationFailure,
-    recovery: DirectMutationRecoveryResult
-  ) -> String {
+  package static func message(_ failure: DirectMutationFailure, recovery: DirectMutationRecoveryResult) -> String {
     switch recovery {
-    case .restored:
-      return restored(failure)
-    case .restoreFailed(let result, let currentOff):
-      return message(failure, restoreSummary: "Restore failed: \(result.summary)", currentOff: currentOff)
+    case .restored: return restored(failure)
+    case .restoreFailed(let result, let currentOff): return message(failure, restoreSummary: "Restore failed: \(result.summary)", currentOff: currentOff)
     case .restoreUnavailable(let reason, let currentOff):
-      return message(
-        failure,
-        restoreSummary: "Restore could not be performed: \(reason)",
-        currentOff: currentOff)
+      return message(failure, restoreSummary: "Restore could not be performed: \(reason)", currentOff: currentOff)
     }
   }
 
@@ -32,11 +24,7 @@ package enum DirectMutationOutcomeMessage {
     }
   }
 
-  private static func message(
-    _ failure: DirectMutationFailure,
-    restoreSummary: String,
-    currentOff: CurrentOffUpdate
-  ) -> String {
+  private static func message(_ failure: DirectMutationFailure, restoreSummary: String, currentOff: CurrentOffUpdate) -> String {
     switch failure {
     case .attempted(let axis, let display, let value, let summary):
       return "Unable to Set \(axis) on \(display) to \(value): \(summary). \(restoreSummary). \(currentOff.message)"

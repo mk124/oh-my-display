@@ -7,12 +7,7 @@ package struct DisplayProfileIntent: Codable, Equatable, Sendable {
   package var ditheringEnabled: Bool?
   package var iccProfileURL: URL?
 
-  package init(
-    resolution: ResolutionIntent? = nil,
-    displayMode: DisplayModeIntent? = nil,
-    ditheringEnabled: Bool? = nil,
-    iccProfileURL: URL? = nil
-  ) {
+  package init(resolution: ResolutionIntent? = nil, displayMode: DisplayModeIntent? = nil, ditheringEnabled: Bool? = nil, iccProfileURL: URL? = nil) {
     self.resolution = resolution
     self.displayMode = displayMode
     self.ditheringEnabled = ditheringEnabled
@@ -21,24 +16,16 @@ package struct DisplayProfileIntent: Codable, Equatable, Sendable {
 
   package var technicalSummary: String {
     let hdr = displayMode?.hdrMode?.label ?? "Unknown"
-    let size = (displayMode?.outputTimingResolution ?? resolution?.backingResolution)?.commonLabel
-      ?? "Unknown"
+    let size = (displayMode?.outputTimingResolution ?? resolution?.backingResolution)?.commonLabel ?? "Unknown"
     let refresh = displayMode?.outputTimingRefreshHz ?? resolution?.refreshHz
-    let parts = [
-      "[\(hdr)]",
-      size,
-      refresh.map(Self.formatRefresh),
-      displayMode?.encoding?.technicalLabel,
-      displayMode?.bitDepth.map { "\($0)-bit" },
-    ].compactMap { $0 }.filter { !$0.isEmpty }
+    let parts = ["[\(hdr)]", size, refresh.map(Self.formatRefresh), displayMode?.encoding?.technicalLabel, displayMode?.bitDepth.map { "\($0)-bit" }].compactMap
+    { $0 }.filter { !$0.isEmpty }
 
     return parts.isEmpty ? "Unknown Display State" : parts.joined(separator: " ")
   }
 
   private static func formatRefresh(_ value: Double) -> String {
-    if value.rounded() == value {
-      return "\(Int(value))Hz"
-    }
+    if value.rounded() == value { return "\(Int(value))Hz" }
     return "\(String(format: "%.2f", value))Hz"
   }
 }
@@ -50,13 +37,7 @@ package struct ResolutionIntent: Codable, Equatable, Sendable {
   package var isHiDPI: Bool
   package var refreshHz: Double?
 
-  package init(
-    logicalResolution: DisplaySize,
-    backingResolution: DisplaySize,
-    scaleFactor: Double,
-    isHiDPI: Bool,
-    refreshHz: Double?
-  ) {
+  package init(logicalResolution: DisplaySize, backingResolution: DisplaySize, scaleFactor: Double, isHiDPI: Bool, refreshHz: Double?) {
     self.logicalResolution = logicalResolution
     self.backingResolution = backingResolution
     self.scaleFactor = scaleFactor
@@ -76,14 +57,8 @@ package struct DisplayModeIntent: Codable, Equatable, Sendable {
   package var isVRR: Bool?
 
   package init(
-    outputTimingResolution: DisplaySize,
-    outputTimingRefreshHz: Double?,
-    bitDepth: Int?,
-    encoding: DisplayEncoding?,
-    range: DisplayRange?,
-    chroma: DisplayChroma?,
-    hdrMode: DisplayHDRMode?,
-    isVRR: Bool?
+    outputTimingResolution: DisplaySize, outputTimingRefreshHz: Double?, bitDepth: Int?, encoding: DisplayEncoding?, range: DisplayRange?,
+    chroma: DisplayChroma?, hdrMode: DisplayHDRMode?, isVRR: Bool?
   ) {
     self.outputTimingResolution = outputTimingResolution
     self.outputTimingRefreshHz = outputTimingRefreshHz

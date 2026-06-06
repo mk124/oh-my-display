@@ -2,9 +2,7 @@ import Foundation
 import OMDAppCore
 import OMDCore
 
-struct DisplayPayload {
-  var display: DisplaySelector
-}
+struct DisplayPayload { var display: DisplaySelector }
 
 struct CurrentPayload {
   var display: DisplaySelector
@@ -62,7 +60,5 @@ struct MutationOutcome {
 struct AppMenuError: Error, CustomStringConvertible {
   var description: String
 
-  init(_ description: String) {
-    self.description = description
-  }
+  init(_ description: String) { self.description = description }
 }

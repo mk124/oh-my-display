@@ -25,25 +25,12 @@ public struct DisplayState: Codable, Equatable, Sendable {
   public var iccProfileURL: DisplayAxis<URL>
 
   public init(
-    target: DisplayTarget,
-    currentResolutionModeID: DisplayAxis<ResolutionModeID>,
-    logicalResolution: DisplayAxis<DisplaySize>,
-    backingResolution: DisplayAxis<DisplaySize>,
-    scaleFactor: DisplayAxis<Double>,
-    isHiDPI: DisplayAxis<Bool>,
-    resolutionRefreshHz: DisplayAxis<Double>,
-    currentDisplayModeID: DisplayAxis<DisplayModeID>,
-    outputTimingResolution: DisplayAxis<DisplaySize>,
-    outputTimingRefreshHz: DisplayAxis<Double>,
-    bitDepth: DisplayAxis<Int>,
-    encoding: DisplayAxis<DisplayEncoding>,
-    range: DisplayAxis<DisplayRange>,
-    chroma: DisplayAxis<DisplayChroma>,
-    hdrMode: DisplayAxis<DisplayHDRMode>,
-    isVRR: DisplayAxis<Bool>,
-    ditheringEnabled: DisplayAxis<Bool>,
-    ditheringAvailability: DitheringAvailability = .settable,
-    iccProfileURL: DisplayAxis<URL>
+    target: DisplayTarget, currentResolutionModeID: DisplayAxis<ResolutionModeID>, logicalResolution: DisplayAxis<DisplaySize>,
+    backingResolution: DisplayAxis<DisplaySize>, scaleFactor: DisplayAxis<Double>, isHiDPI: DisplayAxis<Bool>, resolutionRefreshHz: DisplayAxis<Double>,
+    currentDisplayModeID: DisplayAxis<DisplayModeID>, outputTimingResolution: DisplayAxis<DisplaySize>, outputTimingRefreshHz: DisplayAxis<Double>,
+    bitDepth: DisplayAxis<Int>, encoding: DisplayAxis<DisplayEncoding>, range: DisplayAxis<DisplayRange>, chroma: DisplayAxis<DisplayChroma>,
+    hdrMode: DisplayAxis<DisplayHDRMode>, isVRR: DisplayAxis<Bool>, ditheringEnabled: DisplayAxis<Bool>,
+    ditheringAvailability: DitheringAvailability = .settable, iccProfileURL: DisplayAxis<URL>
   ) {
     self.target = target
     self.currentResolutionModeID = currentResolutionModeID

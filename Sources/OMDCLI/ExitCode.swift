@@ -22,16 +22,12 @@ struct CommandResult: Equatable, Sendable {
 }
 
 extension CommandResult {
-  static func unexpected(_ error: Error) -> CommandResult {
-    CommandResult(exitCode: .unexpected, stderr: String(describing: error) + "\n")
-  }
+  static func unexpected(_ error: Error) -> CommandResult { CommandResult(exitCode: .unexpected, stderr: String(describing: error) + "\n") }
 
   static func displayControlError(_ error: DisplayControlError) -> CommandResult {
     switch error {
-    case .displayNotFound, .ambiguousDisplay, .invalidSelector:
-      CommandResult(exitCode: .usage, stderr: error.description + "\n")
-    case .unexpected:
-      .unexpected(error)
+    case .displayNotFound, .ambiguousDisplay, .invalidSelector: CommandResult(exitCode: .usage, stderr: error.description + "\n")
+    case .unexpected: .unexpected(error)
     }
   }
 }

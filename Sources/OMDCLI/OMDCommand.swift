@@ -3,39 +3,24 @@ import Foundation
 
 public struct OMDCommand: ParsableCommand {
   public static let configuration = CommandConfiguration(
-    commandName: "omd",
-    abstract: "Read and set macOS display state.",
-    subcommands: [Display.self, ICC.self, VersionCommand.self]
-  )
+    commandName: "omd", abstract: "Read and set macOS display state.", subcommands: [Display.self, ICC.self, VersionCommand.self])
 
   public init() {}
 }
 
 struct Display: ParsableCommand {
   static let configuration = CommandConfiguration(
-    abstract: "Read and set display properties.",
-    subcommands: [
-      DisplayList.self, DisplayGet.self, DisplayResolutions.self, DisplayModes.self,
-      DisplaySet.self,
-    ]
-  )
+    abstract: "Read and set display properties.", subcommands: [DisplayList.self, DisplayGet.self, DisplayResolutions.self, DisplayModes.self, DisplaySet.self])
 }
 
-struct ICC: ParsableCommand {
-  static let configuration = CommandConfiguration(
-    abstract: "List installed ICC profiles.",
-    subcommands: [ICCList.self]
-  )
-}
+struct ICC: ParsableCommand { static let configuration = CommandConfiguration(abstract: "List installed ICC profiles.", subcommands: [ICCList.self]) }
 
 struct ICCList: ParsableCommand {
   static let configuration = CommandConfiguration(commandName: "list")
 
   @Flag var json = false
 
-  func run() throws {
-    emitAndExit(ICCCommands(context: liveContext()).list(json: json))
-  }
+  func run() throws { emitAndExit(ICCCommands(context: liveContext()).list(json: json)) }
 }
 
 struct DisplayList: ParsableCommand {
@@ -43,9 +28,7 @@ struct DisplayList: ParsableCommand {
 
   @Flag var json = false
 
-  func run() throws {
-    emitAndExit(DisplayCommands(context: liveContext()).list(json: json))
-  }
+  func run() throws { emitAndExit(DisplayCommands(context: liveContext()).list(json: json)) }
 }
 
 struct DisplayGet: ParsableCommand {
@@ -54,9 +37,7 @@ struct DisplayGet: ParsableCommand {
   @Option var display: String = "main"
   @Flag var json = false
 
-  func run() throws {
-    emitAndExit(DisplayCommands(context: liveContext()).get(display: display, json: json))
-  }
+  func run() throws { emitAndExit(DisplayCommands(context: liveContext()).get(display: display, json: json)) }
 }
 
 struct DisplayResolutions: ParsableCommand {
@@ -65,9 +46,7 @@ struct DisplayResolutions: ParsableCommand {
   @Option var display: String = "main"
   @Flag var json = false
 
-  func run() throws {
-    emitAndExit(DisplayCommands(context: liveContext()).resolutions(display: display, json: json))
-  }
+  func run() throws { emitAndExit(DisplayCommands(context: liveContext()).resolutions(display: display, json: json)) }
 }
 
 struct DisplayModes: ParsableCommand {
@@ -76,10 +55,7 @@ struct DisplayModes: ParsableCommand {
   @Option var display: String = "main"
   @Flag var json = false
 
-  func run() throws {
-    emitAndExit(
-      DisplayCommands(context: liveContext()).displayModes(display: display, json: json))
-  }
+  func run() throws { emitAndExit(DisplayCommands(context: liveContext()).displayModes(display: display, json: json)) }
 }
 
 struct DisplaySet: ParsableCommand {
@@ -104,23 +80,9 @@ struct DisplaySet: ParsableCommand {
 
   func run() throws {
     let options = DisplaySetOptions(
-      display: display,
-      resolutionMode: resolutionMode,
-      resolution: resolution,
-      hidpi: hidpi,
-      refresh: refresh,
-      displayMode: displayMode,
-      encoding: encoding,
-      bpc: bpc,
-      range: range,
-      chroma: chroma,
-      hdr: hdr,
-      vrr: vrr,
-      dithering: dithering,
-      icc: icc.map { URL(fileURLWithPath: NSString(string: $0).expandingTildeInPath) },
-      json: json,
-      yes: yes
-    )
+      display: display, resolutionMode: resolutionMode, resolution: resolution, hidpi: hidpi, refresh: refresh, displayMode: displayMode, encoding: encoding,
+      bpc: bpc, range: range, chroma: chroma, hdr: hdr, vrr: vrr, dithering: dithering,
+      icc: icc.map { URL(fileURLWithPath: NSString(string: $0).expandingTildeInPath) }, json: json, yes: yes)
     emitAndExit(DisplayCommands(context: liveContext()).set(options))
   }
 }
@@ -128,20 +90,14 @@ struct DisplaySet: ParsableCommand {
 private func liveContext() -> OMDCLIContext {
   OMDCLIContext(isTTY: isatty(STDIN_FILENO) == 1) { question in
     FileHandle.standardError.write((question + " [y/N] ").data(using: .utf8)!)
-    guard let answer = readLine() else {
-      return false
-    }
+    guard let answer = readLine() else { return false }
     return answer.lowercased() == "y" || answer.lowercased() == "yes"
   }
 }
 
 func emitAndExit(_ result: CommandResult) -> Never {
-  if !result.stdout.isEmpty {
-    FileHandle.standardOutput.write(result.stdout.data(using: .utf8)!)
-  }
-  if !result.stderr.isEmpty {
-    FileHandle.standardError.write(result.stderr.data(using: .utf8)!)
-  }
+  if !result.stdout.isEmpty { FileHandle.standardOutput.write(result.stdout.data(using: .utf8)!) }
+  if !result.stderr.isEmpty { FileHandle.standardError.write(result.stderr.data(using: .utf8)!) }
   Foundation.exit(result.exitCode.rawValue)
 }
 

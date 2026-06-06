@@ -62,8 +62,7 @@ final class MutationTests: XCTestCase {
     var ditheringState = ditheringFixture.fake.states[ditheringFixture.display.selector]!
     ditheringState.iccProfileURL = .readable(iccURL)
     ditheringFixture.fake.states[ditheringFixture.display.selector] = ditheringState
-    let ditheringBaseline = try ditheringFixture.core.captureMutationBaseline(
-      for: ditheringFixture.display.selector)
+    let ditheringBaseline = try ditheringFixture.core.captureMutationBaseline(for: ditheringFixture.display.selector)
     ditheringFixture.fake.clearCalls()
     ditheringFixture.fake.ditheringSetResult = .blocked("ditheringRestoreFailed")
 
@@ -107,11 +106,7 @@ final class MutationTests: XCTestCase {
   func testEmptyBaselineReportsBlockedWithoutCallingSetters() throws {
     let fixture = try AppCoreFixture()
     let baseline = DisplayMutationBaseline(
-      display: fixture.display.selector,
-      resolutionModeID: nil,
-      displayModeID: nil,
-      ditheringEnabled: nil,
-      iccProfileURL: nil)
+      display: fixture.display.selector, resolutionModeID: nil, displayModeID: nil, ditheringEnabled: nil, iccProfileURL: nil)
 
     let result = try fixture.core.restore(baseline)
 

@@ -9,23 +9,17 @@ public enum DisplayControlError: Error, Equatable, Sendable, CustomStringConvert
 
   public var description: String {
     switch self {
-    case .displayNotFound(let selector):
-      return "Display not found: \(selector)"
-    case .ambiguousDisplay(let selector):
-      return "Display selector is ambiguous: \(selector)"
-    case .invalidSelector(let selector):
-      return "Invalid display selector: \(selector)"
-    case .unexpected(let message):
-      return message
+    case .displayNotFound(let selector): return "Display not found: \(selector)"
+    case .ambiguousDisplay(let selector): return "Display selector is ambiguous: \(selector)"
+    case .invalidSelector(let selector): return "Invalid display selector: \(selector)"
+    case .unexpected(let message): return message
     }
   }
 
   var isUserResolvableSelectorError: Bool {
     switch self {
-    case .displayNotFound, .ambiguousDisplay, .invalidSelector:
-      return true
-    case .unexpected:
-      return false
+    case .displayNotFound, .ambiguousDisplay, .invalidSelector: return true
+    case .unexpected: return false
     }
   }
 }

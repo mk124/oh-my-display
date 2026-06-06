@@ -1,8 +1,7 @@
 import AppKit
 import OMDAppCore
 
-@MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+@MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
   var core: OMDAppCore?
   let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
   var reconcileTimer: Timer?
@@ -25,9 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
   }
 
-  func applicationWillTerminate(_ notification: Notification) {
-    uninstallEventObservers()
-  }
+  func applicationWillTerminate(_ notification: Notification) { uninstallEventObservers() }
 
   func configureStatusItem() {
     let button = statusItem.button
@@ -37,9 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   func requireCore() throws -> OMDAppCore {
-    guard let core else {
-      throw AppMenuError("AppCore unavailable")
-    }
+    guard let core else { throw AppMenuError("AppCore unavailable") }
     return core
   }
 

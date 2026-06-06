@@ -17,21 +17,12 @@ final class DisplayCommandsTests: XCTestCase {
     XCTAssertEqual(try DisplayGet.parse(["--display", "uuid:one"]).display, "uuid:one")
     XCTAssertEqual(try DisplayResolutions.parse(["--display", "uuid:one"]).display, "uuid:one")
     XCTAssertEqual(try DisplayModes.parse(["--display", "uuid:one"]).display, "uuid:one")
-    XCTAssertEqual(
-      try DisplaySet.parse(["--display", "uuid:one", "--dithering", "off"]).display,
-      "uuid:one")
+    XCTAssertEqual(try DisplaySet.parse(["--display", "uuid:one", "--dithering", "off"]).display, "uuid:one")
   }
 
   func testListJSONUsesCLIDTOAndDoesNotExposeRawDisplayID() throws {
     let core = FakeCore()
-    core.displays.append(
-      DisplayTarget(
-        selector: DisplaySelector("cg:2"),
-        displayID: 2,
-        label: "Fallback",
-        isMain: false,
-        isBuiltin: false
-      ))
+    core.displays.append(DisplayTarget(selector: DisplaySelector("cg:2"), displayID: 2, label: "Fallback", isMain: false, isBuiltin: false))
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
     let result = commands.list(json: true)
@@ -49,22 +40,8 @@ final class DisplayCommandsTests: XCTestCase {
 
   func testDisplayListHumanUsesAlignedColumnsAndSelectorLast() {
     let core = FakeCore()
-    core.displays.append(
-      DisplayTarget(
-        selector: DisplaySelector("uuid:two-long"),
-        displayID: 2,
-        label: "Long Living Room",
-        isMain: false,
-        isBuiltin: true
-      ))
-    core.displays.append(
-      DisplayTarget(
-        selector: DisplaySelector("cg:3"),
-        displayID: 3,
-        label: "Fallback",
-        isMain: false,
-        isBuiltin: false
-      ))
+    core.displays.append(DisplayTarget(selector: DisplaySelector("uuid:two-long"), displayID: 2, label: "Long Living Room", isMain: false, isBuiltin: true))
+    core.displays.append(DisplayTarget(selector: DisplaySelector("cg:3"), displayID: 3, label: "Fallback", isMain: false, isBuiltin: false))
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
     let result = commands.list(json: false)
@@ -106,9 +83,7 @@ final class DisplayCommandsTests: XCTestCase {
 
     XCTAssertEqual(result.exitCode, .success)
     XCTAssertEqual(profiles.first?["name"] as? String, "Display P3")
-    XCTAssertEqual(
-      profiles.first?["path"] as? String,
-      "/Library/ColorSync/Profiles/Display P3.icc")
+    XCTAssertEqual(profiles.first?["path"] as? String, "/Library/ColorSync/Profiles/Display P3.icc")
     XCTAssertEqual(core.callLog, ["listICCProfiles"])
   }
 
@@ -131,68 +106,30 @@ final class DisplayCommandsTests: XCTestCase {
   func testResolutionModesHumanGroupsByBackingPixelAreaAndLeavesJSONRaw() throws {
     let core = FakeCore()
     let res5120Wide = ResolutionMode(
-      id: ResolutionModeID("res-5120-wide"),
-      logicalResolution: DisplaySize(width: 5120, height: 1440),
-      backingResolution: DisplaySize(width: 5120, height: 1440),
-      scaleFactor: 1,
-      isHiDPI: false,
-      refreshHz: 60
-    )
+      id: ResolutionModeID("res-5120-wide"), logicalResolution: DisplaySize(width: 5120, height: 1440),
+      backingResolution: DisplaySize(width: 5120, height: 1440), scaleFactor: 1, isHiDPI: false, refreshHz: 60)
     let res3840LoDPI = ResolutionMode(
-      id: ResolutionModeID("res-3840-lodpi"),
-      logicalResolution: DisplaySize(width: 3840, height: 2160),
-      backingResolution: DisplaySize(width: 3840, height: 2160),
-      scaleFactor: 1,
-      isHiDPI: false,
-      refreshHz: 60
-    )
+      id: ResolutionModeID("res-3840-lodpi"), logicalResolution: DisplaySize(width: 3840, height: 2160),
+      backingResolution: DisplaySize(width: 3840, height: 2160), scaleFactor: 1, isHiDPI: false, refreshHz: 60)
     let res1920HiDPI120B = ResolutionMode(
-      id: ResolutionModeID("res-1920-hidpi-120-b"),
-      logicalResolution: DisplaySize(width: 1920, height: 1080),
-      backingResolution: DisplaySize(width: 3840, height: 2160),
-      scaleFactor: 2,
-      isHiDPI: true,
-      refreshHz: 120
-    )
+      id: ResolutionModeID("res-1920-hidpi-120-b"), logicalResolution: DisplaySize(width: 1920, height: 1080),
+      backingResolution: DisplaySize(width: 3840, height: 2160), scaleFactor: 2, isHiDPI: true, refreshHz: 120)
     let res1920HiDPI120A = ResolutionMode(
-      id: ResolutionModeID("res-1920-hidpi-120-a"),
-      logicalResolution: DisplaySize(width: 1920, height: 1080),
-      backingResolution: DisplaySize(width: 3840, height: 2160),
-      scaleFactor: 2,
-      isHiDPI: true,
-      refreshHz: 120
-    )
+      id: ResolutionModeID("res-1920-hidpi-120-a"), logicalResolution: DisplaySize(width: 1920, height: 1080),
+      backingResolution: DisplaySize(width: 3840, height: 2160), scaleFactor: 2, isHiDPI: true, refreshHz: 120)
     let res3008HiDPI = ResolutionMode(
-      id: ResolutionModeID("res-3008-hidpi"),
-      logicalResolution: DisplaySize(width: 3008, height: 1692),
-      backingResolution: DisplaySize(width: 5120, height: 2880),
-      scaleFactor: 1.7,
-      isHiDPI: true,
-      refreshHz: 60
-    )
+      id: ResolutionModeID("res-3008-hidpi"), logicalResolution: DisplaySize(width: 3008, height: 1692),
+      backingResolution: DisplaySize(width: 5120, height: 2880), scaleFactor: 1.7, isHiDPI: true, refreshHz: 60)
     let resEqualAreaWide = ResolutionMode(
-      id: ResolutionModeID("res-equal-area-wide"),
-      logicalResolution: DisplaySize(width: 8192, height: 1024),
-      backingResolution: DisplaySize(width: 8192, height: 1024),
-      scaleFactor: 1,
-      isHiDPI: false,
-      refreshHz: 60
-    )
+      id: ResolutionModeID("res-equal-area-wide"), logicalResolution: DisplaySize(width: 8192, height: 1024),
+      backingResolution: DisplaySize(width: 8192, height: 1024), scaleFactor: 1, isHiDPI: false, refreshHz: 60)
     let resEqualAreaNarrow = ResolutionMode(
-      id: ResolutionModeID("res-equal-area-narrow"),
-      logicalResolution: DisplaySize(width: 4096, height: 2048),
-      backingResolution: DisplaySize(width: 4096, height: 2048),
-      scaleFactor: 1,
-      isHiDPI: false,
-      refreshHz: 60
-    )
+      id: ResolutionModeID("res-equal-area-narrow"), logicalResolution: DisplaySize(width: 4096, height: 2048),
+      backingResolution: DisplaySize(width: 4096, height: 2048), scaleFactor: 1, isHiDPI: false, refreshHz: 60)
     core.resolutionModesResult = .readable(
       [
-        res5120Wide, core.res1920HiDPI, resEqualAreaWide, core.res2560HiDPI,
-        res1920HiDPI120B, res3840LoDPI, res3008HiDPI, res1920HiDPI120A,
-        resEqualAreaNarrow,
-      ],
-      source: "CoreGraphics")
+        res5120Wide, core.res1920HiDPI, resEqualAreaWide, core.res2560HiDPI, res1920HiDPI120B, res3840LoDPI, res3008HiDPI, res1920HiDPI120A, resEqualAreaNarrow,
+      ], source: "CoreGraphics")
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
     let human = commands.resolutions(display: "uuid:one", json: false)
@@ -218,8 +155,7 @@ final class DisplayCommandsTests: XCTestCase {
     XCTAssertEqual(
       modes.compactMap { rawValue($0["id"]) },
       [
-        "res-5120-wide", "res-1920-hidpi", "res-equal-area-wide", "res-2560-hidpi",
-        "res-1920-hidpi-120-b", "res-3840-lodpi", "res-3008-hidpi",
+        "res-5120-wide", "res-1920-hidpi", "res-equal-area-wide", "res-2560-hidpi", "res-1920-hidpi-120-b", "res-3840-lodpi", "res-3008-hidpi",
         "res-1920-hidpi-120-a", "res-equal-area-narrow",
       ])
   }
@@ -243,59 +179,23 @@ final class DisplayCommandsTests: XCTestCase {
   func testDisplayModesHumanGroupsByTimingPixelAreaAndLeavesJSONRaw() throws {
     let core = FakeCore()
     func mode(
-      _ id: String,
-      timing: DisplaySize = DisplaySize(width: 3840, height: 2160),
-      refresh: Double = 60,
-      hdr: DisplayHDRMode = .sdr,
-      bpc: Int = 8,
-      encoding: DisplayEncoding = .rgb,
-      range: DisplayRange = .full,
-      chroma: DisplayChroma = .none,
-      isVRR: Bool = false,
-      hdrModeRaw: String? = nil,
-      colorModeRaw: String? = nil,
-      modeDescription: String? = nil
+      _ id: String, timing: DisplaySize = DisplaySize(width: 3840, height: 2160), refresh: Double = 60, hdr: DisplayHDRMode = .sdr, bpc: Int = 8,
+      encoding: DisplayEncoding = .rgb, range: DisplayRange = .full, chroma: DisplayChroma = .none, isVRR: Bool = false, hdrModeRaw: String? = nil,
+      colorModeRaw: String? = nil, modeDescription: String? = nil
     ) -> DisplayMode {
       DisplayMode(
-        id: DisplayModeID(id),
-        outputTimingResolution: timing,
-        outputTimingRefreshHz: refresh,
-        bitDepth: bpc,
-        encoding: encoding,
-        range: range,
-        chroma: chroma,
-        hdrMode: hdr,
-        hdrModeRaw: hdrModeRaw,
-        colorModeRaw: colorModeRaw,
-        modeDescription: modeDescription,
-        isVRR: isVRR
-      )
+        id: DisplayModeID(id), outputTimingResolution: timing, outputTimingRefreshHz: refresh, bitDepth: bpc, encoding: encoding, range: range, chroma: chroma,
+        hdrMode: hdr, hdrModeRaw: hdrModeRaw, colorModeRaw: colorModeRaw, modeDescription: modeDescription, isVRR: isVRR)
     }
     let dolbyDescription = "<CADisplayMode 3840 x 2160 fmt:DolbyVision range:full>"
     let rawModes = [
-      mode("mode-4k-120-sdr-rgb-8-full-none", refresh: 120),
+      mode("mode-4k-120-sdr-rgb-8-full-none", refresh: 120), mode("mode-4k-60-sdr-ycbcr-8-limited-420", encoding: .ycbcr, range: .limited, chroma: .c420),
+      mode("mode-4k-60-sdr-rgb-10-full-none", bpc: 10), mode("mode-1080-120-sdr-rgb-8-full-none", timing: DisplaySize(width: 1920, height: 1080), refresh: 120),
+      mode("mode-4k-60-hdr-rgb-8-full-none", hdr: .hdr10), mode("mode-4k-60-sdr-ycbcr-8-full-422", encoding: .ycbcr, chroma: .c422),
+      mode("mode-4k-60-sdr-ycbcr-8-full-444", encoding: .ycbcr, chroma: .c444), mode("mode-4k-60-sdr-rgb-8-limited-none", range: .limited),
       mode(
-        "mode-4k-60-sdr-ycbcr-8-limited-420", encoding: .ycbcr, range: .limited,
-        chroma: .c420),
-      mode("mode-4k-60-sdr-rgb-10-full-none", bpc: 10),
-      mode(
-        "mode-1080-120-sdr-rgb-8-full-none",
-        timing: DisplaySize(width: 1920, height: 1080), refresh: 120),
-      mode("mode-4k-60-hdr-rgb-8-full-none", hdr: .hdr10),
-      mode("mode-4k-60-sdr-ycbcr-8-full-422", encoding: .ycbcr, chroma: .c422),
-      mode("mode-4k-60-sdr-ycbcr-8-full-444", encoding: .ycbcr, chroma: .c444),
-      mode("mode-4k-60-sdr-rgb-8-limited-none", range: .limited),
-      mode(
-        "mode-4k-60-dolby-none-12-full-none",
-        hdr: .dolbyVision,
-        bpc: 12,
-        encoding: .none,
-        hdrModeRaw: "Dolby",
-        colorModeRaw: "DolbyVision",
-        modeDescription: dolbyDescription
-      ),
-      mode("mode-4k-60-sdr-rgb-8-full-none"),
-      mode("mode-4k-60-sdr-rgb-8-full-none-vrr", isVRR: true),
+        "mode-4k-60-dolby-none-12-full-none", hdr: .dolbyVision, bpc: 12, encoding: .none, hdrModeRaw: "Dolby", colorModeRaw: "DolbyVision",
+        modeDescription: dolbyDescription), mode("mode-4k-60-sdr-rgb-8-full-none"), mode("mode-4k-60-sdr-rgb-8-full-none-vrr", isVRR: true),
     ]
     core.displayModesForResolution["res-1920-hidpi"] = .readable(rawModes, source: "CADisplay")
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
@@ -323,8 +223,7 @@ final class DisplayCommandsTests: XCTestCase {
 
         """)
     XCTAssertEqual(modes.compactMap { rawValue($0["id"]) }, rawModes.map(\.id.rawValue))
-    let dolby = try XCTUnwrap(
-      modes.first { rawValue($0["id"]) == "mode-4k-60-dolby-none-12-full-none" })
+    let dolby = try XCTUnwrap(modes.first { rawValue($0["id"]) == "mode-4k-60-dolby-none-12-full-none" })
     XCTAssertEqual(dolby["encoding"] as? String, "none")
     XCTAssertEqual(dolby["hdrMode"] as? String, "dolby-vision")
     XCTAssertEqual(dolby["hdrModeRaw"] as? String, "Dolby")
@@ -337,28 +236,19 @@ final class DisplayCommandsTests: XCTestCase {
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
     core.resolutionModesResult = .readable([], source: "CoreGraphics")
-    assertPlainTable(
-      commands.resolutions(display: "uuid:one", json: false).stdout,
-      equals: "logical  backing  scale  hidpi  refresh  resolutionMode\n")
+    assertPlainTable(commands.resolutions(display: "uuid:one", json: false).stdout, equals: "logical  backing  scale  hidpi  refresh  resolutionMode\n")
 
     core.displayModesForResolution["res-1920-hidpi"] = .readable([], source: "CADisplay")
     assertPlainTable(
-      commands.displayModes(display: "uuid:one", json: false).stdout,
-      equals: "timing  hdr  refresh  encoding  bpc  range  chroma  displayMode\n")
+      commands.displayModes(display: "uuid:one", json: false).stdout, equals: "timing  hdr  refresh  encoding  bpc  range  chroma  displayMode\n")
 
     core.resolutionModesResult = .unreadable("CoreGraphics unavailable", source: "CoreGraphics")
-    XCTAssertEqual(
-      commands.resolutions(display: "uuid:one", json: false).stdout,
-      "resolution modes unavailable: CoreGraphics unavailable\n")
+    XCTAssertEqual(commands.resolutions(display: "uuid:one", json: false).stdout, "resolution modes unavailable: CoreGraphics unavailable\n")
 
-    core.displayModesForResolution["res-1920-hidpi"] = .unreadable(
-      "CADisplay unavailable", source: "CADisplay")
-    XCTAssertEqual(
-      commands.displayModes(display: "uuid:one", json: false).stdout,
-      "display modes unavailable: CADisplay unavailable\n")
+    core.displayModesForResolution["res-1920-hidpi"] = .unreadable("CADisplay unavailable", source: "CADisplay")
+    XCTAssertEqual(commands.displayModes(display: "uuid:one", json: false).stdout, "display modes unavailable: CADisplay unavailable\n")
 
-    core.resolutionModesResult = .degraded(
-      [core.res1920HiDPI], reason: "partial", source: "CoreGraphics")
+    core.resolutionModesResult = .degraded([core.res1920HiDPI], reason: "partial", source: "CoreGraphics")
     assertPlainTable(
       commands.resolutions(display: "uuid:one", json: false).stdout,
       equals: """
@@ -367,8 +257,7 @@ final class DisplayCommandsTests: XCTestCase {
 
         """)
 
-    core.displayModesForResolution["res-1920-hidpi"] = .degraded(
-      [core.modeR1RGB8], reason: "partial", source: "CADisplay")
+    core.displayModesForResolution["res-1920-hidpi"] = .degraded([core.modeR1RGB8], reason: "partial", source: "CADisplay")
     assertPlainTable(
       commands.displayModes(display: "uuid:one", json: false).stdout,
       equals: """
@@ -382,8 +271,7 @@ final class DisplayCommandsTests: XCTestCase {
     let commands = DisplayCommands(context: OMDCLIContext(core: FakeCore(), isTTY: false))
 
     let resolutions = try jsonObject(commands.resolutions(display: "uuid:one", json: true).stdout)
-    let displayModes = try jsonObject(
-      commands.displayModes(display: "uuid:one", json: true).stdout)
+    let displayModes = try jsonObject(commands.displayModes(display: "uuid:one", json: true).stdout)
     let resolutionItems = try XCTUnwrap(resolutions["modes"] as? [[String: Any]])
     let displayModeItems = try XCTUnwrap(displayModes["modes"] as? [[String: Any]])
     let resolutionMode = try XCTUnwrap(resolutionItems.first)
@@ -391,15 +279,10 @@ final class DisplayCommandsTests: XCTestCase {
 
     XCTAssertEqual(resolutions["readability"] as? String, "readable")
     XCTAssertEqual(displayModes["readability"] as? String, "readable")
-    XCTAssertEqual(
-      Set(resolutionMode.keys),
-      ["id", "logicalResolution", "backingResolution", "scaleFactor", "isHiDPI", "refreshHz"])
+    XCTAssertEqual(Set(resolutionMode.keys), ["id", "logicalResolution", "backingResolution", "scaleFactor", "isHiDPI", "refreshHz"])
     XCTAssertEqual(
       Set(displayMode.keys),
-      [
-        "id", "outputTimingResolution", "outputTimingRefreshHz", "bitDepth", "encoding",
-        "range", "chroma", "hdrMode", "isVirtual", "isVRR", "isHighBandwidth",
-      ])
+      ["id", "outputTimingResolution", "outputTimingRefreshHz", "bitDepth", "encoding", "range", "chroma", "hdrMode", "isVirtual", "isVRR", "isHighBandwidth"])
   }
 
   func testGetJSONRedactsICCAbsolutePathAndGroupsState() throws {
@@ -415,9 +298,7 @@ final class DisplayCommandsTests: XCTestCase {
     XCTAssertEqual(result.exitCode, .success)
     XCTAssertEqual(state["icc"] as? String, "Profile.icc")
     XCTAssertEqual(resolution["currentMode"] as? String, "res-1920-hidpi")
-    XCTAssertEqual(
-      Set(displayMode.keys),
-      ["currentMode", "timing", "refreshHz", "bpc", "encoding", "range", "chroma", "hdr", "vrr"])
+    XCTAssertEqual(Set(displayMode.keys), ["currentMode", "timing", "refreshHz", "bpc", "encoding", "range", "chroma", "hdr", "vrr"])
     XCTAssertEqual(displayMode["currentMode"] as? String, "mode-r1-rgb-8")
     XCTAssertEqual(displayMode["bpc"] as? Int, 8)
     XCTAssertEqual(displayMode["encoding"] as? String, "rgb")
@@ -489,44 +370,24 @@ final class DisplayCommandsTests: XCTestCase {
     let core = FakeCore()
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
-    let result = commands.set(
-      DisplaySetOptions(display: "main", resolutionMode: "res-2560-hidpi", yes: true))
+    let result = commands.set(DisplaySetOptions(display: "main", resolutionMode: "res-2560-hidpi", yes: true))
 
     XCTAssertEqual(result.exitCode, .success)
-    XCTAssertEqual(core.callLog, [
-      "listDisplays",
-      "readState:uuid:one",
-      "listResolutions:uuid:one",
-      "listDisplayModes:uuid:one",
-      "setResolution:res-2560-hidpi",
-    ])
+    XCTAssertEqual(
+      core.callLog, ["listDisplays", "readState:uuid:one", "listResolutions:uuid:one", "listDisplayModes:uuid:one", "setResolution:res-2560-hidpi"])
   }
 
   func testMutatingAllAndFriendlyNameReturnUsage() {
     let commands = DisplayCommands(context: OMDCLIContext(core: FakeCore(), isTTY: false))
 
-    XCTAssertEqual(
-      commands.set(DisplaySetOptions(display: "all", dithering: .off)).exitCode,
-      .usage)
-    XCTAssertEqual(
-      commands.set(DisplaySetOptions(display: "Living Room", dithering: .off)).exitCode,
-      .usage)
-    XCTAssertEqual(
-      commands.set(DisplaySetOptions(display: "cg:1", dithering: .off)).exitCode,
-      .usage)
+    XCTAssertEqual(commands.set(DisplaySetOptions(display: "all", dithering: .off)).exitCode, .usage)
+    XCTAssertEqual(commands.set(DisplaySetOptions(display: "Living Room", dithering: .off)).exitCode, .usage)
+    XCTAssertEqual(commands.set(DisplaySetOptions(display: "cg:1", dithering: .off)).exitCode, .usage)
   }
 
   func testMutatingMainAllowsRuntimeFallbackSelector() {
     let core = FakeCore()
-    core.displays = [
-      DisplayTarget(
-        selector: DisplaySelector("cg:1"),
-        displayID: 1,
-        label: "One",
-        isMain: true,
-        isBuiltin: false
-      )
-    ]
+    core.displays = [DisplayTarget(selector: DisplaySelector("cg:1"), displayID: 1, label: "One", isMain: true, isBuiltin: false)]
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
     let result = commands.set(DisplaySetOptions(display: "main", dithering: .off))
@@ -565,8 +426,7 @@ final class DisplayCommandsTests: XCTestCase {
     core.iccResult = .applied("icc")
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
-    let result = commands.set(
-      DisplaySetOptions(display: "uuid:one", icc: URL(fileURLWithPath: "/tmp/a.icc")))
+    let result = commands.set(DisplaySetOptions(display: "uuid:one", icc: URL(fileURLWithPath: "/tmp/a.icc")))
 
     XCTAssertEqual(result.exitCode, .success)
     XCTAssertEqual(core.callLog, ["setICC:a.icc"])
@@ -577,11 +437,7 @@ final class DisplayCommandsTests: XCTestCase {
     core.displayModeResult = .blocked("unknown display mode")
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
-    let result = commands.set(
-      DisplaySetOptions(
-        display: "uuid:one",
-        displayMode: "missing",
-        yes: true))
+    let result = commands.set(DisplaySetOptions(display: "uuid:one", displayMode: "missing", yes: true))
 
     XCTAssertEqual(result.exitCode, .blocked)
     XCTAssertEqual(core.callLog.filter { $0.hasPrefix("listDisplayModes") }, [])
@@ -591,12 +447,7 @@ final class DisplayCommandsTests: XCTestCase {
   func testResolutionModeAndSemanticResolutionFlagsAreMutuallyExclusive() {
     let commands = DisplayCommands(context: OMDCLIContext(core: FakeCore(), isTTY: false))
 
-    let result = commands.set(
-      DisplaySetOptions(
-        display: "uuid:one",
-        resolutionMode: "res-1920-hidpi",
-        resolution: "1920x1080",
-        yes: true))
+    let result = commands.set(DisplaySetOptions(display: "uuid:one", resolutionMode: "res-1920-hidpi", resolution: "1920x1080", yes: true))
 
     XCTAssertEqual(result.exitCode, .usage)
   }
@@ -604,12 +455,7 @@ final class DisplayCommandsTests: XCTestCase {
   func testDisplayModeAndSemanticDisplayModeFlagsAreMutuallyExclusive() {
     let commands = DisplayCommands(context: OMDCLIContext(core: FakeCore(), isTTY: false))
 
-    let result = commands.set(
-      DisplaySetOptions(
-        display: "uuid:one",
-        displayMode: "mode-r1-rgb-8",
-        bpc: 10,
-        yes: true))
+    let result = commands.set(DisplaySetOptions(display: "uuid:one", displayMode: "mode-r1-rgb-8", bpc: 10, yes: true))
 
     XCTAssertEqual(result.exitCode, .usage)
   }
@@ -617,13 +463,7 @@ final class DisplayCommandsTests: XCTestCase {
   func testDisplayModeCannotCombineWithResolutionChange() {
     let commands = DisplayCommands(context: OMDCLIContext(core: FakeCore(), isTTY: false))
 
-    let result = commands.set(
-      DisplaySetOptions(
-        display: "uuid:one",
-        resolution: "2560x1440",
-        hidpi: .on,
-        displayMode: "mode-r1-rgb-8",
-        yes: true))
+    let result = commands.set(DisplaySetOptions(display: "uuid:one", resolution: "2560x1440", hidpi: .on, displayMode: "mode-r1-rgb-8", yes: true))
 
     XCTAssertEqual(result.exitCode, .usage)
     XCTAssertTrue(result.stderr.contains("--display-mode cannot be combined"))
@@ -633,8 +473,7 @@ final class DisplayCommandsTests: XCTestCase {
     let core = FakeCore()
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
-    let result = commands.set(
-      DisplaySetOptions(display: "uuid:one", resolution: "1920-1080", yes: true))
+    let result = commands.set(DisplaySetOptions(display: "uuid:one", resolution: "1920-1080", yes: true))
 
     XCTAssertEqual(result.exitCode, .usage)
     XCTAssertTrue(core.resolutionSetCalls.isEmpty)
@@ -645,8 +484,7 @@ final class DisplayCommandsTests: XCTestCase {
       let core = FakeCore()
       let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
-      let result = commands.set(
-        DisplaySetOptions(display: "uuid:one", resolution: resolution, yes: true))
+      let result = commands.set(DisplaySetOptions(display: "uuid:one", resolution: resolution, yes: true))
 
       XCTAssertEqual(result.exitCode, .usage, resolution)
       XCTAssertTrue(core.resolutionSetCalls.isEmpty, resolution)
@@ -657,13 +495,7 @@ final class DisplayCommandsTests: XCTestCase {
     let core = FakeCore()
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
-    let result = commands.set(
-      DisplaySetOptions(
-        display: "uuid:one",
-        resolution: "2560x1440",
-        hidpi: .on,
-        refresh: 60,
-        yes: true))
+    let result = commands.set(DisplaySetOptions(display: "uuid:one", resolution: "2560x1440", hidpi: .on, refresh: 60, yes: true))
 
     XCTAssertEqual(result.exitCode, .success)
     XCTAssertEqual(core.resolutionSetCalls, [ResolutionModeID("res-2560-hidpi")])
@@ -676,23 +508,15 @@ final class DisplayCommandsTests: XCTestCase {
     core.ditheringResult = .applied("dither")
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
-    let result = commands.set(
-      DisplaySetOptions(
-        display: "uuid:one",
-        resolutionMode: "res-2560-hidpi",
-        dithering: .off,
-        yes: true))
+    let result = commands.set(DisplaySetOptions(display: "uuid:one", resolutionMode: "res-2560-hidpi", dithering: .off, yes: true))
 
     XCTAssertEqual(result.exitCode, .partialFailure)
     XCTAssertTrue(result.stdout.contains("resolution: readbackMismatch"))
     XCTAssertTrue(result.stdout.contains("restore.resolution:"))
     XCTAssertTrue(result.stdout.contains("restore.displayMode:"))
     XCTAssertTrue(result.stdout.contains("dithering: skipped"))
-    XCTAssertEqual(core.callLog.filter { $0.hasPrefix("set") }, [
-      "setResolution:res-2560-hidpi",
-      "setResolution:res-1920-hidpi",
-      "setDisplayMode:mode-r1-rgb-8",
-    ])
+    XCTAssertEqual(
+      core.callLog.filter { $0.hasPrefix("set") }, ["setResolution:res-2560-hidpi", "setResolution:res-1920-hidpi", "setDisplayMode:mode-r1-rgb-8"])
   }
 
   func testResolutionAttemptedFailureReportsRestoreThrowWithoutDroppingOriginalFailure() {
@@ -701,11 +525,7 @@ final class DisplayCommandsTests: XCTestCase {
     core.setResolutionErrors["res-1920-hidpi"] = DisplayControlError.unexpected("restore exploded")
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
-    let result = commands.set(
-      DisplaySetOptions(
-        display: "uuid:one",
-        resolutionMode: "res-2560-hidpi",
-        yes: true))
+    let result = commands.set(DisplaySetOptions(display: "uuid:one", resolutionMode: "res-2560-hidpi", yes: true))
 
     XCTAssertEqual(result.exitCode, .partialFailure)
     XCTAssertTrue(result.stdout.contains("resolution: readbackMismatch"))
@@ -719,8 +539,7 @@ final class DisplayCommandsTests: XCTestCase {
     let core = FakeCore()
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
-    let result = commands.set(
-      DisplaySetOptions(display: "uuid:one", resolution: "2560x1440", hidpi: .on))
+    let result = commands.set(DisplaySetOptions(display: "uuid:one", resolution: "2560x1440", hidpi: .on))
 
     XCTAssertEqual(result.exitCode, .blocked)
     XCTAssertTrue(core.resolutionSetCalls.isEmpty)
@@ -735,8 +554,7 @@ final class DisplayCommandsTests: XCTestCase {
         return false
       })
 
-    let result = commands.set(
-      DisplaySetOptions(display: "uuid:one", resolutionMode: "res-1920-hidpi"))
+    let result = commands.set(DisplaySetOptions(display: "uuid:one", resolutionMode: "res-1920-hidpi"))
 
     XCTAssertEqual(result.exitCode, .success)
     XCTAssertFalse(recorder.prompted)
@@ -752,8 +570,7 @@ final class DisplayCommandsTests: XCTestCase {
         return false
       })
 
-    let result = commands.set(
-      DisplaySetOptions(display: "uuid:one", resolutionMode: "res-2560-hidpi"))
+    let result = commands.set(DisplaySetOptions(display: "uuid:one", resolutionMode: "res-2560-hidpi"))
 
     XCTAssertEqual(result.exitCode, .blocked)
     XCTAssertTrue(recorder.prompted)
@@ -763,19 +580,9 @@ final class DisplayCommandsTests: XCTestCase {
   func testSemanticDisplayModeOnlyUsesCurrentTimingAndDisplayModeSetter() {
     let core = FakeCore()
     let vrr = DisplayMode(
-      id: DisplayModeID("mode-r1-rgb-10-vrr"),
-      outputTimingResolution: DisplaySize(width: 3840, height: 2160),
-      outputTimingRefreshHz: 60,
-      bitDepth: 10,
-      encoding: .rgb,
-      range: .full,
-      chroma: .none,
-      hdrMode: .sdr,
-      isVRR: true
-    )
-    core.displayModesForResolution["res-1920-hidpi"] = .readable(
-      [core.modeR1RGB8, core.modeR1RGB10, vrr],
-      source: "CADisplay")
+      id: DisplayModeID("mode-r1-rgb-10-vrr"), outputTimingResolution: DisplaySize(width: 3840, height: 2160), outputTimingRefreshHz: 60, bitDepth: 10,
+      encoding: .rgb, range: .full, chroma: .none, hdrMode: .sdr, isVRR: true)
+    core.displayModesForResolution["res-1920-hidpi"] = .readable([core.modeR1RGB8, core.modeR1RGB10, vrr], source: "CADisplay")
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
     let result = commands.set(DisplaySetOptions(display: "uuid:one", bpc: 10, yes: true))
@@ -788,19 +595,9 @@ final class DisplayCommandsTests: XCTestCase {
   func testSemanticDisplayModeCanSelectVRRWhenRequested() {
     let core = FakeCore()
     let vrr = DisplayMode(
-      id: DisplayModeID("mode-r1-rgb-8-vrr"),
-      outputTimingResolution: DisplaySize(width: 3840, height: 2160),
-      outputTimingRefreshHz: 60,
-      bitDepth: 8,
-      encoding: .rgb,
-      range: .full,
-      chroma: .none,
-      hdrMode: .sdr,
-      isVRR: true
-    )
-    core.displayModesForResolution["res-1920-hidpi"] = .readable(
-      [core.modeR1RGB8, vrr],
-      source: "CADisplay")
+      id: DisplayModeID("mode-r1-rgb-8-vrr"), outputTimingResolution: DisplaySize(width: 3840, height: 2160), outputTimingRefreshHz: 60, bitDepth: 8,
+      encoding: .rgb, range: .full, chroma: .none, hdrMode: .sdr, isVRR: true)
+    core.displayModesForResolution["res-1920-hidpi"] = .readable([core.modeR1RGB8, vrr], source: "CADisplay")
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
     let result = commands.set(DisplaySetOptions(display: "uuid:one", vrr: .on, yes: true))
@@ -812,31 +609,15 @@ final class DisplayCommandsTests: XCTestCase {
   func testSemanticDisplayModeCanSelectDolbyVisionWhenChromaIsOmitted() {
     let core = FakeCore()
     let dolby = DisplayMode(
-      id: DisplayModeID("mode-r1-dolby"),
-      outputTimingResolution: DisplaySize(width: 3840, height: 2160),
-      outputTimingRefreshHz: 60,
-      bitDepth: 12,
-      encoding: .none,
-      range: .full,
-      chroma: .none,
-      hdrMode: .dolbyVision,
-      hdrModeRaw: "Dolby",
-      colorModeRaw: "DolbyVision",
-      modeDescription: "<CADisplayMode 3840 x 2160 fmt:DolbyVision range:full>"
-    )
-    core.displayModesForResolution["res-1920-hidpi"] = .readable(
-      [core.modeR1RGB8, dolby],
-      source: "CADisplay")
+      id: DisplayModeID("mode-r1-dolby"), outputTimingResolution: DisplaySize(width: 3840, height: 2160), outputTimingRefreshHz: 60, bitDepth: 12,
+      encoding: .none, range: .full, chroma: .none, hdrMode: .dolbyVision, hdrModeRaw: "Dolby", colorModeRaw: "DolbyVision",
+      modeDescription: "<CADisplayMode 3840 x 2160 fmt:DolbyVision range:full>")
+    core.displayModesForResolution["res-1920-hidpi"] = .readable([core.modeR1RGB8, dolby], source: "CADisplay")
     core.state.encoding = .readable(.ycbcr)
     core.state.chroma = .readable(.c444)
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
-    let result = commands.set(
-      DisplaySetOptions(
-        display: "uuid:one",
-        bpc: 12,
-        hdr: .dolbyVision,
-        yes: true))
+    let result = commands.set(DisplaySetOptions(display: "uuid:one", bpc: 12, hdr: .dolbyVision, yes: true))
 
     XCTAssertEqual(result.exitCode, .success)
     XCTAssertEqual(core.displayModeSetCalls, [DisplayModeID("mode-r1-dolby")])
@@ -845,18 +626,9 @@ final class DisplayCommandsTests: XCTestCase {
   func testSemanticDisplayModePrefersExactChromaBeforeUnknownWhenChromaIsOmitted() {
     let core = FakeCore()
     let unknownChroma = DisplayMode(
-      id: DisplayModeID("mode-r1-rgb-10-unknown-chroma"),
-      outputTimingResolution: DisplaySize(width: 3840, height: 2160),
-      outputTimingRefreshHz: 60,
-      bitDepth: 10,
-      encoding: .rgb,
-      range: .full,
-      chroma: .unknown,
-      hdrMode: .sdr
-    )
-    core.displayModesForResolution["res-1920-hidpi"] = .readable(
-      [unknownChroma, core.modeR1RGB10],
-      source: "CADisplay")
+      id: DisplayModeID("mode-r1-rgb-10-unknown-chroma"), outputTimingResolution: DisplaySize(width: 3840, height: 2160), outputTimingRefreshHz: 60,
+      bitDepth: 10, encoding: .rgb, range: .full, chroma: .unknown, hdrMode: .sdr)
+    core.displayModesForResolution["res-1920-hidpi"] = .readable([unknownChroma, core.modeR1RGB10], source: "CADisplay")
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
     let result = commands.set(DisplaySetOptions(display: "uuid:one", bpc: 10, yes: true))
@@ -868,19 +640,10 @@ final class DisplayCommandsTests: XCTestCase {
   func testSemanticDisplayModeUsesDegradedCurrentChromaWhenChromaIsOmitted() {
     let core = FakeCore()
     let unknownChroma = DisplayMode(
-      id: DisplayModeID("mode-r1-rgb-10-unknown-chroma"),
-      outputTimingResolution: DisplaySize(width: 3840, height: 2160),
-      outputTimingRefreshHz: 60,
-      bitDepth: 10,
-      encoding: .rgb,
-      range: .full,
-      chroma: .unknown,
-      hdrMode: .sdr
-    )
+      id: DisplayModeID("mode-r1-rgb-10-unknown-chroma"), outputTimingResolution: DisplaySize(width: 3840, height: 2160), outputTimingRefreshHz: 60,
+      bitDepth: 10, encoding: .rgb, range: .full, chroma: .unknown, hdrMode: .sdr)
     core.state.chroma = .degraded(.unknown, source: "CADisplay color mode")
-    core.displayModesForResolution["res-1920-hidpi"] = .readable(
-      [unknownChroma, core.modeR1RGB10],
-      source: "CADisplay")
+    core.displayModesForResolution["res-1920-hidpi"] = .readable([unknownChroma, core.modeR1RGB10], source: "CADisplay")
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
     let result = commands.set(DisplaySetOptions(display: "uuid:one", bpc: 10, yes: true))
@@ -892,32 +655,15 @@ final class DisplayCommandsTests: XCTestCase {
   func testSemanticDisplayModeCanSelectDolbyVisionLowLatency() {
     let core = FakeCore()
     let lowLatency = DisplayMode(
-      id: DisplayModeID("mode-r1-dolby-low-latency"),
-      outputTimingResolution: DisplaySize(width: 3840, height: 2160),
-      outputTimingRefreshHz: 60,
-      bitDepth: 12,
-      encoding: .none,
-      range: .limited,
-      chroma: .none,
-      hdrMode: .dolbyVisionLowLatency,
-      hdrModeRaw: "Dolby",
-      colorModeRaw: "DolbyVisionLowLatency",
-      modeDescription: "<CADisplayMode 3840 x 2160 fmt:DolbyVision_LowLatency range:limited>"
-    )
-    core.displayModesForResolution["res-1920-hidpi"] = .readable(
-      [core.modeR1RGB8, lowLatency],
-      source: "CADisplay")
+      id: DisplayModeID("mode-r1-dolby-low-latency"), outputTimingResolution: DisplaySize(width: 3840, height: 2160), outputTimingRefreshHz: 60, bitDepth: 12,
+      encoding: .none, range: .limited, chroma: .none, hdrMode: .dolbyVisionLowLatency, hdrModeRaw: "Dolby", colorModeRaw: "DolbyVisionLowLatency",
+      modeDescription: "<CADisplayMode 3840 x 2160 fmt:DolbyVision_LowLatency range:limited>")
+    core.displayModesForResolution["res-1920-hidpi"] = .readable([core.modeR1RGB8, lowLatency], source: "CADisplay")
     core.state.encoding = .readable(.ycbcr)
     core.state.chroma = .readable(.c444)
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
-    let result = commands.set(
-      DisplaySetOptions(
-        display: "uuid:one",
-        bpc: 12,
-        range: .limited,
-        hdr: .dolbyVisionLowLatency,
-        yes: true))
+    let result = commands.set(DisplaySetOptions(display: "uuid:one", bpc: 12, range: .limited, hdr: .dolbyVisionLowLatency, yes: true))
 
     XCTAssertEqual(result.exitCode, .success)
     XCTAssertEqual(core.displayModeSetCalls, [DisplayModeID("mode-r1-dolby-low-latency")])
@@ -927,22 +673,8 @@ final class DisplayCommandsTests: XCTestCase {
     let core = FakeCore()
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
-    let withEncoding = commands.set(
-      DisplaySetOptions(
-        display: "uuid:one",
-        encoding: .rgb,
-        bpc: 12,
-        range: .full,
-        hdr: .dolbyVision,
-        yes: true))
-    let withChroma = commands.set(
-      DisplaySetOptions(
-        display: "uuid:one",
-        bpc: 12,
-        range: .full,
-        chroma: .c444,
-        hdr: .dolbyVisionLowLatency,
-        yes: true))
+    let withEncoding = commands.set(DisplaySetOptions(display: "uuid:one", encoding: .rgb, bpc: 12, range: .full, hdr: .dolbyVision, yes: true))
+    let withChroma = commands.set(DisplaySetOptions(display: "uuid:one", bpc: 12, range: .full, chroma: .c444, hdr: .dolbyVisionLowLatency, yes: true))
 
     XCTAssertEqual(withEncoding.exitCode, .usage)
     XCTAssertEqual(withChroma.exitCode, .usage)
@@ -973,18 +705,10 @@ final class DisplayCommandsTests: XCTestCase {
     let core = FakeCore()
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
-    let result = commands.set(
-      DisplaySetOptions(
-        display: "uuid:one",
-        resolutionMode: "res-1920-hidpi",
-        bpc: 10,
-        yes: true))
+    let result = commands.set(DisplaySetOptions(display: "uuid:one", resolutionMode: "res-1920-hidpi", bpc: 10, yes: true))
 
     XCTAssertEqual(result.exitCode, .success)
-    XCTAssertEqual(core.callLog.filter { $0.hasPrefix("set") }, [
-      "setResolution:res-1920-hidpi",
-      "setDisplayMode:mode-r1-rgb-10",
-    ])
+    XCTAssertEqual(core.callLog.filter { $0.hasPrefix("set") }, ["setResolution:res-1920-hidpi", "setDisplayMode:mode-r1-rgb-10"])
   }
 
   func testResolutionChangeThenSemanticDisplayModeResolvesAfterResolution() {
@@ -992,19 +716,10 @@ final class DisplayCommandsTests: XCTestCase {
     core.displayModesForResolution["res-2560-hidpi"] = .readable([core.modeR2RGB10])
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
-    let result = commands.set(
-      DisplaySetOptions(
-        display: "uuid:one",
-        resolution: "2560x1440",
-        hidpi: .on,
-        bpc: 10,
-        yes: true))
+    let result = commands.set(DisplaySetOptions(display: "uuid:one", resolution: "2560x1440", hidpi: .on, bpc: 10, yes: true))
 
     XCTAssertEqual(result.exitCode, .success)
-    XCTAssertEqual(core.callLog.filter { $0.hasPrefix("set") }, [
-      "setResolution:res-2560-hidpi",
-      "setDisplayMode:mode-r2-rgb-10",
-    ])
+    XCTAssertEqual(core.callLog.filter { $0.hasPrefix("set") }, ["setResolution:res-2560-hidpi", "setDisplayMode:mode-r2-rgb-10"])
   }
 
   func testResolutionChangingSemanticDisplayModeRestoresWhenPostResolutionHasNoCandidate() {
@@ -1012,57 +727,35 @@ final class DisplayCommandsTests: XCTestCase {
     core.displayModesForResolution["res-2560-hidpi"] = .readable([core.modeR2RGB8])
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
-    let result = commands.set(
-      DisplaySetOptions(
-        display: "uuid:one",
-        resolution: "2560x1440",
-        hidpi: .on,
-        bpc: 10,
-        yes: true))
+    let result = commands.set(DisplaySetOptions(display: "uuid:one", resolution: "2560x1440", hidpi: .on, bpc: 10, yes: true))
 
     XCTAssertEqual(result.exitCode, .partialFailure)
     XCTAssertTrue(result.stdout.contains("displayMode: failed"))
     XCTAssertTrue(result.stdout.contains("restore.resolution: applied"))
     XCTAssertTrue(result.stdout.contains("restore.displayMode:"))
-    XCTAssertEqual(core.callLog.filter { $0.hasPrefix("set") }, [
-      "setResolution:res-2560-hidpi",
-      "setResolution:res-1920-hidpi",
-      "setDisplayMode:mode-r1-rgb-8",
-    ])
+    XCTAssertEqual(
+      core.callLog.filter { $0.hasPrefix("set") }, ["setResolution:res-2560-hidpi", "setResolution:res-1920-hidpi", "setDisplayMode:mode-r1-rgb-8"])
   }
 
   func testResolutionChangingSemanticDisplayModeRestoresWhenPostResolutionBackendIsUnreadable() {
     let core = FakeCore()
-    core.displayModesForResolution["res-2560-hidpi"] = .unreadable(
-      "CADisplay lost after resolution change",
-      source: "CADisplay")
+    core.displayModesForResolution["res-2560-hidpi"] = .unreadable("CADisplay lost after resolution change", source: "CADisplay")
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
-    let result = commands.set(
-      DisplaySetOptions(
-        display: "uuid:one",
-        resolution: "2560x1440",
-        hidpi: .on,
-        bpc: 10,
-        yes: true))
+    let result = commands.set(DisplaySetOptions(display: "uuid:one", resolution: "2560x1440", hidpi: .on, bpc: 10, yes: true))
 
     XCTAssertEqual(result.exitCode, .partialFailure)
     XCTAssertTrue(result.stdout.contains("displayMode: failed"))
     XCTAssertTrue(result.stdout.contains("CADisplay lost after resolution change"))
     XCTAssertTrue(result.stdout.contains("restore.resolution: applied"))
     XCTAssertTrue(result.stdout.contains("restore.displayMode:"))
-    XCTAssertEqual(core.callLog.filter { $0.hasPrefix("set") }, [
-      "setResolution:res-2560-hidpi",
-      "setResolution:res-1920-hidpi",
-      "setDisplayMode:mode-r1-rgb-8",
-    ])
+    XCTAssertEqual(
+      core.callLog.filter { $0.hasPrefix("set") }, ["setResolution:res-2560-hidpi", "setResolution:res-1920-hidpi", "setDisplayMode:mode-r1-rgb-8"])
   }
 
   func testDisplayModeBackendUnavailableBeforeMutationExitsBlocked() {
     let core = FakeCore()
-    core.displayModesForResolution["res-1920-hidpi"] = .unreadable(
-      "CADisplay unavailable",
-      source: "CADisplay")
+    core.displayModesForResolution["res-1920-hidpi"] = .unreadable("CADisplay unavailable", source: "CADisplay")
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
     let result = commands.set(DisplaySetOptions(display: "uuid:one", bpc: 10, yes: true))
@@ -1080,21 +773,11 @@ final class DisplayCommandsTests: XCTestCase {
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
     let result = commands.set(
-      DisplaySetOptions(
-        display: "uuid:one",
-        resolutionMode: "res-2560-hidpi",
-        bpc: 10,
-        dithering: .off,
-        icc: URL(fileURLWithPath: "/tmp/a.icc"),
-        yes: true))
+      DisplaySetOptions(display: "uuid:one", resolutionMode: "res-2560-hidpi", bpc: 10, dithering: .off, icc: URL(fileURLWithPath: "/tmp/a.icc"), yes: true))
 
     XCTAssertEqual(result.exitCode, .success)
-    XCTAssertEqual(core.callLog.filter { $0.hasPrefix("set") }, [
-      "setResolution:res-2560-hidpi",
-      "setDisplayMode:mode-r2-rgb-10",
-      "setDithering:false",
-      "setICC:a.icc",
-    ])
+    XCTAssertEqual(
+      core.callLog.filter { $0.hasPrefix("set") }, ["setResolution:res-2560-hidpi", "setDisplayMode:mode-r2-rgb-10", "setDithering:false", "setICC:a.icc"])
   }
 
   func testFailureAfterResolutionAppliedExitsPartialFailureAndSkipsLaterOps() {
@@ -1104,13 +787,7 @@ final class DisplayCommandsTests: XCTestCase {
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
     let result = commands.set(
-      DisplaySetOptions(
-        display: "uuid:one",
-        resolutionMode: "res-2560-hidpi",
-        bpc: 10,
-        dithering: .off,
-        icc: URL(fileURLWithPath: "/tmp/a.icc"),
-        yes: true))
+      DisplaySetOptions(display: "uuid:one", resolutionMode: "res-2560-hidpi", bpc: 10, dithering: .off, icc: URL(fileURLWithPath: "/tmp/a.icc"), yes: true))
 
     XCTAssertEqual(result.exitCode, .partialFailure)
     XCTAssertTrue(result.stdout.contains("dithering: skipped"))
@@ -1124,12 +801,7 @@ final class DisplayCommandsTests: XCTestCase {
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
     let result = commands.set(
-      DisplaySetOptions(
-        display: "uuid:one",
-        resolutionMode: "res-2560-hidpi",
-        dithering: .off,
-        icc: URL(fileURLWithPath: "/tmp/a.icc"),
-        yes: true))
+      DisplaySetOptions(display: "uuid:one", resolutionMode: "res-2560-hidpi", dithering: .off, icc: URL(fileURLWithPath: "/tmp/a.icc"), yes: true))
 
     XCTAssertEqual(result.exitCode, .partialFailure)
     XCTAssertTrue(result.stdout.contains("resolution: applied"))
@@ -1145,11 +817,7 @@ final class DisplayCommandsTests: XCTestCase {
     core.setICCError = DisplayControlError.unexpected("icc exploded")
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
-    let result = commands.set(
-      DisplaySetOptions(
-        display: "uuid:one",
-        dithering: .off,
-        icc: URL(fileURLWithPath: "/tmp/a.icc")))
+    let result = commands.set(DisplaySetOptions(display: "uuid:one", dithering: .off, icc: URL(fileURLWithPath: "/tmp/a.icc")))
 
     XCTAssertEqual(result.exitCode, .partialFailure)
     XCTAssertTrue(result.stdout.contains("dithering: applied"))
@@ -1163,14 +831,7 @@ final class DisplayCommandsTests: XCTestCase {
     core.displayModesForResolution["res-2560-hidpi"] = .readable([core.modeR2RGB8])
     let commands = DisplayCommands(context: OMDCLIContext(core: core, isTTY: false))
 
-    let result = commands.set(
-      DisplaySetOptions(
-        display: "uuid:one",
-        resolution: "2560x1440",
-        hidpi: .on,
-        bpc: 10,
-        json: true,
-        yes: true))
+    let result = commands.set(DisplaySetOptions(display: "uuid:one", resolution: "2560x1440", hidpi: .on, bpc: 10, json: true, yes: true))
     let operations = try jsonArray(result.stdout)
     let restore = try XCTUnwrap(operations[1]["restore"] as? [[String: Any]])
 
@@ -1266,61 +927,23 @@ final class DisplayCommandsTests: XCTestCase {
 
 private final class FakeCore: DisplayClient, @unchecked Sendable {
   let res1920HiDPI = ResolutionMode(
-    id: ResolutionModeID("res-1920-hidpi"),
-    logicalResolution: DisplaySize(width: 1920, height: 1080),
-    backingResolution: DisplaySize(width: 3840, height: 2160),
-    scaleFactor: 2,
-    isHiDPI: true,
-    refreshHz: 60
-  )
+    id: ResolutionModeID("res-1920-hidpi"), logicalResolution: DisplaySize(width: 1920, height: 1080),
+    backingResolution: DisplaySize(width: 3840, height: 2160), scaleFactor: 2, isHiDPI: true, refreshHz: 60)
   let res2560HiDPI = ResolutionMode(
-    id: ResolutionModeID("res-2560-hidpi"),
-    logicalResolution: DisplaySize(width: 2560, height: 1440),
-    backingResolution: DisplaySize(width: 5120, height: 2880),
-    scaleFactor: 2,
-    isHiDPI: true,
-    refreshHz: 60
-  )
+    id: ResolutionModeID("res-2560-hidpi"), logicalResolution: DisplaySize(width: 2560, height: 1440),
+    backingResolution: DisplaySize(width: 5120, height: 2880), scaleFactor: 2, isHiDPI: true, refreshHz: 60)
   let modeR1RGB8 = DisplayMode(
-    id: DisplayModeID("mode-r1-rgb-8"),
-    outputTimingResolution: DisplaySize(width: 3840, height: 2160),
-    outputTimingRefreshHz: 60,
-    bitDepth: 8,
-    encoding: .rgb,
-    range: .full,
-    chroma: .none,
-    hdrMode: .sdr
-  )
+    id: DisplayModeID("mode-r1-rgb-8"), outputTimingResolution: DisplaySize(width: 3840, height: 2160), outputTimingRefreshHz: 60, bitDepth: 8, encoding: .rgb,
+    range: .full, chroma: .none, hdrMode: .sdr)
   let modeR1RGB10 = DisplayMode(
-    id: DisplayModeID("mode-r1-rgb-10"),
-    outputTimingResolution: DisplaySize(width: 3840, height: 2160),
-    outputTimingRefreshHz: 60,
-    bitDepth: 10,
-    encoding: .rgb,
-    range: .full,
-    chroma: .none,
-    hdrMode: .sdr
-  )
+    id: DisplayModeID("mode-r1-rgb-10"), outputTimingResolution: DisplaySize(width: 3840, height: 2160), outputTimingRefreshHz: 60, bitDepth: 10,
+    encoding: .rgb, range: .full, chroma: .none, hdrMode: .sdr)
   let modeR2RGB8 = DisplayMode(
-    id: DisplayModeID("mode-r2-rgb-8"),
-    outputTimingResolution: DisplaySize(width: 5120, height: 2880),
-    outputTimingRefreshHz: 60,
-    bitDepth: 8,
-    encoding: .rgb,
-    range: .full,
-    chroma: .none,
-    hdrMode: .sdr
-  )
+    id: DisplayModeID("mode-r2-rgb-8"), outputTimingResolution: DisplaySize(width: 5120, height: 2880), outputTimingRefreshHz: 60, bitDepth: 8, encoding: .rgb,
+    range: .full, chroma: .none, hdrMode: .sdr)
   let modeR2RGB10 = DisplayMode(
-    id: DisplayModeID("mode-r2-rgb-10"),
-    outputTimingResolution: DisplaySize(width: 5120, height: 2880),
-    outputTimingRefreshHz: 60,
-    bitDepth: 10,
-    encoding: .rgb,
-    range: .full,
-    chroma: .none,
-    hdrMode: .sdr
-  )
+    id: DisplayModeID("mode-r2-rgb-10"), outputTimingResolution: DisplaySize(width: 5120, height: 2880), outputTimingRefreshHz: 60, bitDepth: 10,
+    encoding: .rgb, range: .full, chroma: .none, hdrMode: .sdr)
 
   var displays: [DisplayTarget]
   var state: DisplayState
@@ -1331,12 +954,8 @@ private final class FakeCore: DisplayClient, @unchecked Sendable {
   var ditheringResult: DisplaySetResult = .noOp()
   var iccResult: DisplaySetResult = .noOp()
   var iccProfiles: [ICCProfile] = [
-    ICCProfile(
-      name: "Display P3",
-      url: URL(fileURLWithPath: "/Library/ColorSync/Profiles/Display P3.icc")),
-    ICCProfile(
-      name: "sRGB IEC61966-2.1",
-      url: URL(fileURLWithPath: "/System/Library/ColorSync/Profiles/sRGB Profile.icc")),
+    ICCProfile(name: "Display P3", url: URL(fileURLWithPath: "/Library/ColorSync/Profiles/Display P3.icc")),
+    ICCProfile(name: "sRGB IEC61966-2.1", url: URL(fileURLWithPath: "/System/Library/ColorSync/Profiles/sRGB Profile.icc")),
   ]
   var resolutionSetCalls: [ResolutionModeID] = []
   var displayModeSetCalls: [DisplayModeID] = []
@@ -1349,23 +968,12 @@ private final class FakeCore: DisplayClient, @unchecked Sendable {
   var setICCError: Error?
 
   init() {
-    let target = DisplayTarget(
-      selector: DisplaySelector("uuid:one"),
-      displayID: 1,
-      label: "One",
-      isMain: true,
-      isBuiltin: false
-    )
+    let target = DisplayTarget(selector: DisplaySelector("uuid:one"), displayID: 1, label: "One", isMain: true, isBuiltin: false)
     self.displays = [target]
     self.resolutionModesResult = .readable([res1920HiDPI, res2560HiDPI], source: "CoreGraphics")
-    self.state = Self.state(
-      target: target,
-      resolution: res1920HiDPI,
-      displayMode: modeR1RGB8
-    )
+    self.state = Self.state(target: target, resolution: res1920HiDPI, displayMode: modeR1RGB8)
     self.displayModesForResolution = [
-      "res-1920-hidpi": .readable([modeR1RGB8, modeR1RGB10], source: "CADisplay"),
-      "res-2560-hidpi": .readable([modeR2RGB8, modeR2RGB10], source: "CADisplay"),
+      "res-1920-hidpi": .readable([modeR1RGB8, modeR1RGB10], source: "CADisplay"), "res-2560-hidpi": .readable([modeR2RGB8, modeR2RGB10], source: "CADisplay"),
     ]
   }
 
@@ -1376,75 +984,45 @@ private final class FakeCore: DisplayClient, @unchecked Sendable {
 
   func readDisplayState(_ display: DisplaySelector) throws -> DisplayState {
     callLog.append("readState:\(display.rawValue)")
-    if let readError {
-      throw readError
-    }
+    if let readError { throw readError }
     return state
   }
 
-  func listResolutionModes(_ display: DisplaySelector) throws
-    -> DisplayListResult<ResolutionMode>
-  {
+  func listResolutionModes(_ display: DisplaySelector) throws -> DisplayListResult<ResolutionMode> {
     callLog.append("listResolutions:\(display.rawValue)")
-    if let listResolutionError {
-      throw listResolutionError
-    }
+    if let listResolutionError { throw listResolutionError }
     return resolutionModesResult
   }
 
-  func setResolutionMode(
-    _ display: DisplaySelector,
-    modeID: ResolutionModeID
-  ) throws -> DisplaySetResult {
+  func setResolutionMode(_ display: DisplaySelector, modeID: ResolutionModeID) throws -> DisplaySetResult {
     callLog.append("setResolution:\(modeID.rawValue)")
     resolutionSetCalls.append(modeID)
-    if let error = setResolutionErrors[modeID.rawValue] {
-      throw error
-    }
-    if state.currentResolutionModeID.value == modeID {
-      return .noOp("same")
-    }
+    if let error = setResolutionErrors[modeID.rawValue] { throw error }
+    if state.currentResolutionModeID.value == modeID { return .noOp("same") }
     let result = resolutionResult
-    if result.status == .applied, let mode = resolutionModesResult.items.first(where: { $0.id == modeID }) {
-      applyResolution(mode)
-    }
+    if result.status == .applied, let mode = resolutionModesResult.items.first(where: { $0.id == modeID }) { applyResolution(mode) }
     return result
   }
 
-  func listDisplayModes(_ display: DisplaySelector) throws
-    -> DisplayListResult<DisplayMode>
-  {
+  func listDisplayModes(_ display: DisplaySelector) throws -> DisplayListResult<DisplayMode> {
     callLog.append("listDisplayModes:\(display.rawValue)")
-    if let listDisplayModeError {
-      throw listDisplayModeError
-    }
+    if let listDisplayModeError { throw listDisplayModeError }
     let key = state.currentResolutionModeID.value?.rawValue ?? ""
     return displayModesForResolution[key] ?? .readable([], source: "CADisplay")
   }
 
-  func setDisplayMode(
-    _ display: DisplaySelector,
-    modeID: DisplayModeID
-  ) throws -> DisplaySetResult {
+  func setDisplayMode(_ display: DisplaySelector, modeID: DisplayModeID) throws -> DisplaySetResult {
     callLog.append("setDisplayMode:\(modeID.rawValue)")
     displayModeSetCalls.append(modeID)
-    if state.currentDisplayModeID.value == modeID {
-      return .noOp("same")
-    }
+    if state.currentDisplayModeID.value == modeID { return .noOp("same") }
     let result = displayModeResult
-    if result.status == .applied,
-      let mode = try listDisplayModes(display).items.first(where: { $0.id == modeID })
-    {
-      applyDisplayMode(mode)
-    }
+    if result.status == .applied, let mode = try listDisplayModes(display).items.first(where: { $0.id == modeID }) { applyDisplayMode(mode) }
     return result
   }
 
   func setDithering(_ display: DisplaySelector, enabled: Bool) throws -> DisplaySetResult {
     callLog.append("setDithering:\(enabled)")
-    if let setDitheringError {
-      throw setDitheringError
-    }
+    if let setDitheringError { throw setDitheringError }
     return ditheringResult
   }
 
@@ -1460,9 +1038,7 @@ private final class FakeCore: DisplayClient, @unchecked Sendable {
 
   func setICCProfile(_ display: DisplaySelector, profileURL: URL) throws -> DisplaySetResult {
     callLog.append("setICC:\(profileURL.lastPathComponent)")
-    if let setICCError {
-      throw setICCError
-    }
+    if let setICCError { throw setICCError }
     return iccResult
   }
 
@@ -1489,44 +1065,22 @@ private final class FakeCore: DisplayClient, @unchecked Sendable {
     state.isVRR = .readable(mode.isVRR)
   }
 
-  private static func state(
-    target: DisplayTarget,
-    resolution: ResolutionMode,
-    displayMode: DisplayMode
-  ) -> DisplayState {
+  private static func state(target: DisplayTarget, resolution: ResolutionMode, displayMode: DisplayMode) -> DisplayState {
     DisplayState(
-      target: target,
-      currentResolutionModeID: .readable(resolution.id),
-      logicalResolution: .readable(resolution.logicalResolution),
-      backingResolution: .readable(resolution.backingResolution),
-      scaleFactor: .readable(resolution.scaleFactor),
-      isHiDPI: .readable(resolution.isHiDPI),
-      resolutionRefreshHz: resolution.refreshHz.map { .readable($0) } ?? .unreadable(),
-      currentDisplayModeID: .readable(displayMode.id),
+      target: target, currentResolutionModeID: .readable(resolution.id), logicalResolution: .readable(resolution.logicalResolution),
+      backingResolution: .readable(resolution.backingResolution), scaleFactor: .readable(resolution.scaleFactor), isHiDPI: .readable(resolution.isHiDPI),
+      resolutionRefreshHz: resolution.refreshHz.map { .readable($0) } ?? .unreadable(), currentDisplayModeID: .readable(displayMode.id),
       outputTimingResolution: .readable(displayMode.outputTimingResolution),
       outputTimingRefreshHz: displayMode.outputTimingRefreshHz.map { .readable($0) } ?? .unreadable(),
-      bitDepth: displayMode.bitDepth.map { .readable($0) } ?? .unreadable(),
-      encoding: .readable(displayMode.encoding),
-      range: .readable(displayMode.range),
-      chroma: .readable(displayMode.chroma),
-      hdrMode: .readable(displayMode.hdrMode),
-      isVRR: .readable(displayMode.isVRR),
-      ditheringEnabled: .readable(true),
-      iccProfileURL: .unreadable()
-    )
+      bitDepth: displayMode.bitDepth.map { .readable($0) } ?? .unreadable(), encoding: .readable(displayMode.encoding), range: .readable(displayMode.range),
+      chroma: .readable(displayMode.chroma), hdrMode: .readable(displayMode.hdrMode), isVRR: .readable(displayMode.isVRR), ditheringEnabled: .readable(true),
+      iccProfileURL: .unreadable())
   }
 }
 
-private final class PromptRecorder: @unchecked Sendable {
-  var prompted = false
-}
+private final class PromptRecorder: @unchecked Sendable { var prompted = false }
 
-private func assertPlainTable(
-  _ output: String,
-  equals expected: String,
-  file: StaticString = #filePath,
-  line: UInt = #line
-) {
+private func assertPlainTable(_ output: String, equals expected: String, file: StaticString = #filePath, line: UInt = #line) {
   XCTAssertEqual(output, expected, file: file, line: line)
   XCTAssertFalse(output.contains("\t"), file: file, line: line)
   for row in output.split(separator: "\n", omittingEmptySubsequences: false) {
@@ -1535,26 +1089,14 @@ private func assertPlainTable(
   }
 }
 
-private func jsonArray(_ value: String, file: StaticString = #filePath, line: UInt = #line) throws
-  -> [[String: Any]]
-{
+private func jsonArray(_ value: String, file: StaticString = #filePath, line: UInt = #line) throws -> [[String: Any]] {
   let data = try XCTUnwrap(value.data(using: .utf8), file: file, line: line)
-  return try XCTUnwrap(
-    JSONSerialization.jsonObject(with: data) as? [[String: Any]],
-    file: file,
-    line: line)
+  return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [[String: Any]], file: file, line: line)
 }
 
-private func jsonObject(_ value: String, file: StaticString = #filePath, line: UInt = #line) throws
-  -> [String: Any]
-{
+private func jsonObject(_ value: String, file: StaticString = #filePath, line: UInt = #line) throws -> [String: Any] {
   let data = try XCTUnwrap(value.data(using: .utf8), file: file, line: line)
-  return try XCTUnwrap(
-    JSONSerialization.jsonObject(with: data) as? [String: Any],
-    file: file,
-    line: line)
+  return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any], file: file, line: line)
 }
 
-private func rawValue(_ value: Any?) -> String? {
-  (value as? [String: Any])?["rawValue"] as? String
-}
+private func rawValue(_ value: Any?) -> String? { (value as? [String: Any])?["rawValue"] as? String }
