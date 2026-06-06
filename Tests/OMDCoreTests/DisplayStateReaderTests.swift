@@ -140,6 +140,8 @@ private struct FakeStateDitheringBackend: DitheringBackend {
 private struct FakeStateICCProfileBackend: ICCProfileBackend {
   func isReadableProfile(_ url: URL) -> Bool { true }
 
+  func isRGBProfile(_ url: URL) -> Bool { true }
+
   func installedProfiles() throws -> [ICCProfile] { [] }
 
   func installedDisplayProfiles() throws -> [ICCProfile] { [] }

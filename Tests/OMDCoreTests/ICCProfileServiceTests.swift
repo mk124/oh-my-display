@@ -16,6 +16,42 @@ final class ICCProfileServiceTests: XCTestCase {
     XCTAssertEqual(backend.setProfileURLs, [])
   }
 
+  func testSetICCProfileBlocksNonRGBProfileBeforeMutation() throws {
+    let backend = FakeICCProfileBackend(isRGB: false)
+    let service = ICCProfileService(resolver: FakeResolver(), backend: backend)
+
+    let result = try service.setICCProfile(DisplaySelector("uuid:one"), profileURL: profile("gray.icc"))
+
+    XCTAssertEqual(result.status, .blocked)
+    XCTAssertFalse(result.attemptedMutation)
+    XCTAssertEqual(backend.setProfileURLs, [])
+  }
+
+  func testLiveBackendClassifiesSystemProfilesByColorModel() throws {
+    let backend = LiveICCProfileBackend()
+    let gray = URL(fileURLWithPath: "/System/Library/ColorSync/Profiles/Generic Gray Profile.icc")
+    let rgb = URL(fileURLWithPath: "/System/Library/ColorSync/Profiles/sRGB Profile.icc")
+    try XCTSkipUnless(FileManager.default.isReadableFile(atPath: gray.path) && FileManager.default.isReadableFile(atPath: rgb.path))
+
+    XCTAssertFalse(backend.isRGBProfile(gray))
+    XCTAssertTrue(backend.isRGBProfile(rgb))
+  }
+
+  func testInstalledDisplayProfileParserRejectsNonRGBColorSpaces() {
+    let rgbFile = "/System/Library/ColorSync/Profiles/sRGB Profile.icc"
+    func info(colorSpace: String) -> CFDictionary {
+      [
+        kColorSyncProfileClass.takeUnretainedValue() as String: kColorSyncSigDisplayClass.takeUnretainedValue() as String,
+        kColorSyncProfileColorSpace.takeUnretainedValue() as String: colorSpace,
+        kColorSyncProfileDescription.takeUnretainedValue() as String: "Profile",
+        kColorSyncProfileURL.takeUnretainedValue() as String: rgbFile,
+      ] as CFDictionary
+    }
+
+    XCTAssertNil(LiveICCProfileBackend.installedDisplayProfile(from: info(colorSpace: kColorSyncSigGrayData.takeUnretainedValue() as String)))
+    XCTAssertNotNil(LiveICCProfileBackend.installedDisplayProfile(from: info(colorSpace: kColorSyncSigRgbData.takeUnretainedValue() as String)))
+  }
+
   func testSetICCProfileReturnsBackendUnavailableWhenDeviceIDIsMissing() throws {
     let backend = FakeICCProfileBackend(deviceID: nil)
     let service = ICCProfileService(resolver: FakeResolver(), backend: backend)
@@ -205,6 +241,7 @@ private struct FakeResolver: DisplayResolving {
 
 final class FakeICCProfileBackend: ICCProfileBackend, @unchecked Sendable {
   var isReadable: Bool
+  var isRGB: Bool
   var fakeDeviceID: ICCDisplayDeviceID?
   var setResult: Bool
   var readbacks: [ICCProfileReadback?]
@@ -214,10 +251,11 @@ final class FakeICCProfileBackend: ICCProfileBackend, @unchecked Sendable {
   var waitCount = 0
 
   init(
-    isReadable: Bool = true, deviceID: ICCDisplayDeviceID? = ICCDisplayDeviceID(rawValue: CFUUIDCreate(kCFAllocatorDefault)), setResult: Bool = true,
-    readbacks: [ICCProfileReadback?] = [], profiles: [ICCProfile] = [], displayProfiles: [ICCProfile] = []
+    isReadable: Bool = true, isRGB: Bool = true, deviceID: ICCDisplayDeviceID? = ICCDisplayDeviceID(rawValue: CFUUIDCreate(kCFAllocatorDefault)),
+    setResult: Bool = true, readbacks: [ICCProfileReadback?] = [], profiles: [ICCProfile] = [], displayProfiles: [ICCProfile] = []
   ) {
     self.isReadable = isReadable
+    self.isRGB = isRGB
     self.fakeDeviceID = deviceID
     self.setResult = setResult
     self.readbacks = readbacks
@@ -226,6 +264,8 @@ final class FakeICCProfileBackend: ICCProfileBackend, @unchecked Sendable {
   }
 
   func isReadableProfile(_ url: URL) -> Bool { isReadable }
+
+  func isRGBProfile(_ url: URL) -> Bool { isRGB }
 
   func installedProfiles() throws -> [ICCProfile] { profiles }
 

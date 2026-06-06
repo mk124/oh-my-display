@@ -49,6 +49,9 @@ struct ICCProfileService: Sendable {
       return .blocked(error.description)
     }
     guard backend.isReadableProfile(profileURL) else { return .blocked("ICC profile file is not readable") }
+    // Display color spaces must be RGB-model: assigning e.g. a Gray profile trips a
+    // hard assert inside SkyLight (CGSColorSpaceRegistry) and aborts the process.
+    guard backend.isRGBProfile(profileURL) else { return .blocked("ICC profile is not an RGB display profile") }
     guard let deviceID = backend.deviceID(for: resolved.displayID) else { return .backendUnavailable("ColorSync display UUID unavailable") }
 
     guard backend.setCustomProfile(profileURL, for: deviceID) else { return .failed(attemptedMutation: true, reason: "ColorSync rejected the profile") }
@@ -71,6 +74,7 @@ struct ICCProfileReadback: Sendable {
 
 protocol ICCProfileBackend: Sendable {
   func isReadableProfile(_ url: URL) -> Bool
+  func isRGBProfile(_ url: URL) -> Bool
   func installedProfiles() throws -> [ICCProfile]
   func installedDisplayProfiles() throws -> [ICCProfile]
   func deviceID(for displayID: CGDirectDisplayID) -> ICCDisplayDeviceID?
@@ -81,6 +85,11 @@ protocol ICCProfileBackend: Sendable {
 
 struct LiveICCProfileBackend: ICCProfileBackend {
   func isReadableProfile(_ url: URL) -> Bool { FileManager.default.isReadableFile(atPath: url.path) }
+
+  func isRGBProfile(_ url: URL) -> Bool {
+    guard let data = try? Data(contentsOf: url), let space = CGColorSpace(iccData: data as CFData) else { return false }
+    return space.model == .rgb
+  }
 
   func installedProfiles() throws -> [ICCProfile] { try installedProfiles(parse: Self.installedProfile(from:)) }
 
@@ -145,7 +154,12 @@ struct LiveICCProfileBackend: ICCProfileBackend {
     let dictionary = info as NSDictionary
     let classKey = kColorSyncProfileClass.takeUnretainedValue()
     let displayClass = kColorSyncSigDisplayClass.takeUnretainedValue() as String
-    guard dictionary[classKey] as? String == displayClass, let profile = installedProfile(from: info),
+    // Display-class alone is not enough: "Generic Gray Profile" is class mntr with a
+    // GRAY data color space, and assigning it to a display aborts the process (see
+    // setICCProfile's RGB guard). Only RGB-data profiles are assignable.
+    let colorSpaceKey = kColorSyncProfileColorSpace.takeUnretainedValue()
+    let rgbColorSpace = kColorSyncSigRgbData.takeUnretainedValue() as String
+    guard dictionary[classKey] as? String == displayClass, dictionary[colorSpaceKey] as? String == rgbColorSpace, let profile = installedProfile(from: info),
       FileManager.default.isReadableFile(atPath: profile.url.path)
     else { return nil }
 
