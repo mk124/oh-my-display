@@ -4,7 +4,6 @@ enum ProfileStoreError: Error, Equatable {
   case unsupportedSchemaVersion(Int)
   case duplicateProfileName(String)
   case missingDisplay(String)
-  case missingCurrentProfile
   case missingProfile(UUID)
 }
 

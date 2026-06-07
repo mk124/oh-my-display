@@ -74,11 +74,6 @@ extension OMDAppCore {
       currentRefreshHz: readableValue(state.resolutionRefreshHz))
   }
 
-  func makeDisplayModeItems(for display: DisplaySelector) throws -> [DisplayModeMenuItem] {
-    let state = try client.readDisplayState(display)
-    return try makeDisplayModeItems(for: display, state: state)
-  }
-
   func makeDisplayModeItems(for display: DisplaySelector, state: DisplayState) throws
     -> [DisplayModeMenuItem]
   {

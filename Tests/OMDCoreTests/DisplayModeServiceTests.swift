@@ -188,13 +188,248 @@ final class DisplayModeServiceTests: XCTestCase {
     XCTAssertEqual(result.reason, "selector unavailable")
   }
 
-  private static func mode(_ id: String) -> DisplayMode {
-    DisplayMode(
-      id: DisplayModeID(id), outputTimingResolution: DisplaySize(width: 3840, height: 2160), outputTimingRefreshHz: 120, bitDepth: 10, encoding: .rgb,
-      range: .full, chroma: .unknown, hdrMode: .sdr)
+  // MARK: - HDR preference orchestration
+
+  func testCrossCategorySwitchFlipsPreferenceAndSetsTarget() throws {
+    let backend = FakeDisplayModeBackend(listResult: .readable([mode("sdr-1"), mode("hdr-1", hdr: .hdr10)]), current: mode("sdr-1"))
+    backend.updateCurrentAfterSet = true
+    let prefs = FakeHDRPreferenceBackend(reading: false)
+    let service = DisplayModeService(backend: backend, hdrPreference: prefs, resolver: FakeDisplayModeResolver())
+
+    let result = try service.setDisplayMode(DisplaySelector("uuid:one"), modeID: DisplayModeID("hdr-1"))
+
+    XCTAssertEqual(result.status, .applied)
+    XCTAssertTrue(result.attemptedMutation)
+    XCTAssertEqual(prefs.setCalls, [true])
+    XCTAssertEqual(backend.setCalls, [DisplayModeID("hdr-1")])
+    XCTAssertFalse(result.reason?.contains("degraded") ?? false)
   }
 
-  private func mode(_ id: String) -> DisplayMode { Self.mode(id) }
+  func testHDRToSDRSwitchFlipsPreferenceOffAndSetsTarget() throws {
+    let backend = FakeDisplayModeBackend(listResult: .readable([mode("sdr-1"), mode("hdr-1", hdr: .hdr10)]), current: mode("hdr-1", hdr: .hdr10))
+    backend.updateCurrentAfterSet = true
+    let prefs = FakeHDRPreferenceBackend(reading: true)
+    let service = DisplayModeService(backend: backend, hdrPreference: prefs, resolver: FakeDisplayModeResolver())
+
+    let result = try service.setDisplayMode(DisplaySelector("uuid:one"), modeID: DisplayModeID("sdr-1"))
+
+    XCTAssertEqual(result.status, .applied)
+    XCTAssertTrue(result.attemptedMutation)
+    XCTAssertEqual(prefs.setCalls, [false])
+    XCTAssertEqual(backend.setCalls, [DisplayModeID("sdr-1")])
+  }
+
+  func testDolbyVisionTargetMapsToHDRPreference() throws {
+    let backend = FakeDisplayModeBackend(listResult: .readable([mode("sdr-1"), mode("dv-1", hdr: .dolbyVision)]), current: mode("sdr-1"))
+    backend.updateCurrentAfterSet = true
+    let prefs = FakeHDRPreferenceBackend(reading: false)
+    let service = DisplayModeService(backend: backend, hdrPreference: prefs, resolver: FakeDisplayModeResolver())
+
+    let result = try service.setDisplayMode(DisplaySelector("uuid:one"), modeID: DisplayModeID("dv-1"))
+
+    XCTAssertEqual(result.status, .applied)
+    XCTAssertEqual(prefs.setCalls, [true])
+  }
+
+  func testAlignedPreferenceKeepsSameCategorySwitchSingleStep() throws {
+    let backend = FakeDisplayModeBackend(listResult: .readable([mode("sdr-1"), mode("sdr-2")]), current: mode("sdr-1"))
+    backend.updateCurrentAfterSet = true
+    let prefs = FakeHDRPreferenceBackend(reading: false)
+    let service = DisplayModeService(backend: backend, hdrPreference: prefs, resolver: FakeDisplayModeResolver())
+
+    let result = try service.setDisplayMode(DisplaySelector("uuid:one"), modeID: DisplayModeID("sdr-2"))
+
+    XCTAssertEqual(result.status, .applied)
+    XCTAssertEqual(prefs.setCalls, [])
+    XCTAssertEqual(backend.setCalls, [DisplayModeID("sdr-2")])
+    XCTAssertFalse(result.reason?.contains("degraded") ?? false)
+  }
+
+  func testAlignedHDRPreferenceKeepsHDRToHDRSwitchSingleStep() throws {
+    let backend = FakeDisplayModeBackend(
+      listResult: .readable([mode("hdr-1", hdr: .hdr10), mode("hdr-2", hdr: .hdr10)]), current: mode("hdr-1", hdr: .hdr10))
+    backend.updateCurrentAfterSet = true
+    let prefs = FakeHDRPreferenceBackend(reading: true)
+    let service = DisplayModeService(backend: backend, hdrPreference: prefs, resolver: FakeDisplayModeResolver())
+
+    let result = try service.setDisplayMode(DisplaySelector("uuid:one"), modeID: DisplayModeID("hdr-2"))
+
+    XCTAssertEqual(result.status, .applied)
+    XCTAssertEqual(prefs.setCalls, [])
+    XCTAssertEqual(backend.setCalls, [DisplayModeID("hdr-2")])
+  }
+
+  func testSameCategorySwitchWithExternallyMisalignedPreferenceCorrectsIt() throws {
+    let backend = FakeDisplayModeBackend(
+      listResult: .readable([mode("hdr-1", hdr: .hdr10), mode("hdr-2", hdr: .hdr10)]), current: mode("hdr-1", hdr: .hdr10))
+    backend.updateCurrentAfterSet = true
+    let prefs = FakeHDRPreferenceBackend(reading: false)
+    let service = DisplayModeService(backend: backend, hdrPreference: prefs, resolver: FakeDisplayModeResolver())
+
+    let result = try service.setDisplayMode(DisplaySelector("uuid:one"), modeID: DisplayModeID("hdr-2"))
+
+    XCTAssertEqual(result.status, .applied)
+    XCTAssertEqual(prefs.setCalls, [true])
+    XCTAssertEqual(backend.setCalls, [DisplayModeID("hdr-2")])
+  }
+
+  func testNoOpWhenTargetIsCurrentAndPreferenceAligned() throws {
+    let backend = FakeDisplayModeBackend(listResult: .readable([mode("hdr-1", hdr: .hdr10)]), current: mode("hdr-1", hdr: .hdr10))
+    let prefs = FakeHDRPreferenceBackend(reading: true)
+    let service = DisplayModeService(backend: backend, hdrPreference: prefs, resolver: FakeDisplayModeResolver())
+
+    let result = try service.setDisplayMode(DisplaySelector("uuid:one"), modeID: DisplayModeID("hdr-1"))
+
+    XCTAssertEqual(result.status, .noOp)
+    XCTAssertEqual(prefs.setCalls, [])
+    XCTAssertEqual(backend.setCalls, [])
+  }
+
+  func testHalfHDRRepairFlipsPreferenceAndStillSetsMatchingLink() throws {
+    // The bad state this feature exists to fix: link already on the target HDR mode, switch off.
+    // The flip's renegotiation moves the link, so the set must fire even though the link matched.
+    let backend = FakeDisplayModeBackend(listResult: .readable([mode("hdr-1", hdr: .hdr10)]), current: mode("hdr-1", hdr: .hdr10))
+    backend.updateCurrentAfterSet = true
+    let prefs = FakeHDRPreferenceBackend(reading: false)
+    let service = DisplayModeService(backend: backend, hdrPreference: prefs, resolver: FakeDisplayModeResolver())
+
+    let result = try service.setDisplayMode(DisplaySelector("uuid:one"), modeID: DisplayModeID("hdr-1"))
+
+    XCTAssertEqual(result.status, .applied)
+    XCTAssertTrue(result.attemptedMutation)
+    XCTAssertEqual(prefs.setCalls, [true])
+    XCTAssertEqual(backend.setCalls, [DisplayModeID("hdr-1")])
+  }
+
+  func testSymmetricHalfSDRRepairFlipsPreferenceOff() throws {
+    let backend = FakeDisplayModeBackend(listResult: .readable([mode("sdr-1")]), current: mode("sdr-1"))
+    backend.updateCurrentAfterSet = true
+    let prefs = FakeHDRPreferenceBackend(reading: true)
+    let service = DisplayModeService(backend: backend, hdrPreference: prefs, resolver: FakeDisplayModeResolver())
+
+    let result = try service.setDisplayMode(DisplaySelector("uuid:one"), modeID: DisplayModeID("sdr-1"))
+
+    XCTAssertEqual(result.status, .applied)
+    XCTAssertEqual(prefs.setCalls, [false])
+    XCTAssertEqual(backend.setCalls, [DisplayModeID("sdr-1")])
+  }
+
+  func testUnknownTargetHDRModeStaysOutOfOrchestration() throws {
+    let backend = FakeDisplayModeBackend(listResult: .readable([mode("sdr-1"), mode("odd-1", hdr: .unknown)]), current: mode("sdr-1"))
+    backend.updateCurrentAfterSet = true
+    let prefs = FakeHDRPreferenceBackend(reading: false)
+    let service = DisplayModeService(backend: backend, hdrPreference: prefs, resolver: FakeDisplayModeResolver())
+
+    let result = try service.setDisplayMode(DisplaySelector("uuid:one"), modeID: DisplayModeID("odd-1"))
+
+    XCTAssertEqual(result.status, .applied)
+    XCTAssertEqual(prefs.setCalls, [])
+    XCTAssertFalse(result.reason?.contains("degraded") ?? false)
+  }
+
+  func testCrossCategorySwitchWithPreAlignedPreferenceSkipsFlip() throws {
+    let backend = FakeDisplayModeBackend(listResult: .readable([mode("sdr-1"), mode("hdr-1", hdr: .hdr10)]), current: mode("sdr-1"))
+    backend.updateCurrentAfterSet = true
+    let prefs = FakeHDRPreferenceBackend(reading: true)  // externally aligned already
+    let service = DisplayModeService(backend: backend, hdrPreference: prefs, resolver: FakeDisplayModeResolver())
+
+    let result = try service.setDisplayMode(DisplaySelector("uuid:one"), modeID: DisplayModeID("hdr-1"))
+
+    XCTAssertEqual(result.status, .applied)
+    XCTAssertEqual(prefs.setCalls, [])
+    XCTAssertEqual(backend.setCalls, [DisplayModeID("hdr-1")])
+  }
+
+  func testUnavailableBridgeDegradesToSingleStepWithNote() throws {
+    let backend = FakeDisplayModeBackend(listResult: .readable([mode("sdr-1"), mode("hdr-1", hdr: .hdr10)]), current: mode("sdr-1"))
+    backend.updateCurrentAfterSet = true
+    let prefs = FakeHDRPreferenceBackend(reading: false)
+    prefs.available = false
+    let service = DisplayModeService(backend: backend, hdrPreference: prefs, resolver: FakeDisplayModeResolver())
+
+    let result = try service.setDisplayMode(DisplaySelector("uuid:one"), modeID: DisplayModeID("hdr-1"))
+
+    XCTAssertEqual(result.status, .applied)
+    XCTAssertEqual(prefs.setCalls, [])
+    XCTAssertTrue(result.reason?.contains("degraded") ?? false)
+    XCTAssertTrue(result.reason?.contains("bridge is unavailable") ?? false)
+  }
+
+  func testPreferenceWriteFailureDegradesAndStillSets() throws {
+    let backend = FakeDisplayModeBackend(listResult: .readable([mode("sdr-1"), mode("hdr-1", hdr: .hdr10)]), current: mode("sdr-1"))
+    backend.updateCurrentAfterSet = true
+    let prefs = FakeHDRPreferenceBackend(reading: false)
+    prefs.setSucceeds = false
+    let service = DisplayModeService(backend: backend, hdrPreference: prefs, resolver: FakeDisplayModeResolver())
+
+    let result = try service.setDisplayMode(DisplaySelector("uuid:one"), modeID: DisplayModeID("hdr-1"))
+
+    XCTAssertEqual(result.status, .applied)
+    XCTAssertTrue(result.attemptedMutation)
+    XCTAssertEqual(prefs.setCalls, [true])
+    XCTAssertEqual(backend.setCalls, [DisplayModeID("hdr-1")])
+    XCTAssertTrue(result.reason?.contains("write failed") ?? false)
+  }
+
+  func testUnreadablePreferenceDegradesToSingleStepWithNote() throws {
+    let backend = FakeDisplayModeBackend(listResult: .readable([mode("sdr-1"), mode("hdr-1", hdr: .hdr10)]), current: mode("sdr-1"))
+    backend.updateCurrentAfterSet = true
+    let prefs = FakeHDRPreferenceBackend(reading: nil)  // bridge available, read fails
+    let service = DisplayModeService(backend: backend, hdrPreference: prefs, resolver: FakeDisplayModeResolver())
+
+    let result = try service.setDisplayMode(DisplaySelector("uuid:one"), modeID: DisplayModeID("hdr-1"))
+
+    XCTAssertEqual(result.status, .applied)
+    XCTAssertEqual(prefs.setCalls, [])
+    XCTAssertTrue(result.reason?.contains("unreadable") ?? false)
+  }
+
+  func testReadbackMismatchInOrchestratedPathCarriesDegradedNote() throws {
+    let backend = FakeDisplayModeBackend(listResult: .readable([mode("sdr-1"), mode("hdr-1", hdr: .hdr10)]), current: mode("sdr-1"))
+    backend.setResult = .applied("accepted")  // setter claims success but current never updates
+    let prefs = FakeHDRPreferenceBackend(reading: false)
+    prefs.setSucceeds = false  // the degraded note must survive into the mismatch reason
+    let service = DisplayModeService(backend: backend, hdrPreference: prefs, resolver: FakeDisplayModeResolver())
+
+    let result = try service.setDisplayMode(DisplaySelector("uuid:one"), modeID: DisplayModeID("hdr-1"))
+
+    XCTAssertEqual(result.status, .readbackMismatch)
+    XCTAssertTrue(result.attemptedMutation)
+    XCTAssertTrue(result.reason?.contains("write failed") ?? false)
+  }
+
+  func testDoubleFailureCarriesDegradedNoteIntoSetterFailureReason() throws {
+    let backend = FakeDisplayModeBackend(listResult: .readable([mode("sdr-1"), mode("hdr-1", hdr: .hdr10)]), current: mode("sdr-1"))
+    backend.setResult = .blocked("CADisplay rejected")
+    let prefs = FakeHDRPreferenceBackend(reading: false)
+    prefs.setSucceeds = false  // prefer write fails AND micro-adjust blocks
+    let service = DisplayModeService(backend: backend, hdrPreference: prefs, resolver: FakeDisplayModeResolver())
+
+    let result = try service.setDisplayMode(DisplaySelector("uuid:one"), modeID: DisplayModeID("hdr-1"))
+
+    XCTAssertEqual(result.status, .blocked)
+    XCTAssertTrue(result.attemptedMutation)
+    XCTAssertTrue(result.reason?.contains("CADisplay rejected") ?? false)
+    XCTAssertTrue(result.reason?.contains("write failed") ?? false)
+  }
+
+  func testSetterFailureAfterPreferenceFlipOverwritesAttemptedMutation() throws {
+    let backend = FakeDisplayModeBackend(listResult: .readable([mode("sdr-1"), mode("hdr-1", hdr: .hdr10)]), current: mode("sdr-1"))
+    backend.setResult = .blocked("CADisplay rejected")  // carries attemptedMutation: false
+    let prefs = FakeHDRPreferenceBackend(reading: false)
+    let service = DisplayModeService(backend: backend, hdrPreference: prefs, resolver: FakeDisplayModeResolver())
+
+    let result = try service.setDisplayMode(DisplaySelector("uuid:one"), modeID: DisplayModeID("hdr-1"))
+
+    XCTAssertEqual(result.status, .blocked)
+    XCTAssertTrue(result.attemptedMutation, "the preference write already mutated system state; restore must fire")
+  }
+
+  private func mode(_ id: String, hdr: DisplayHDRMode = .sdr) -> DisplayMode {
+    DisplayMode(
+      id: DisplayModeID(id), outputTimingResolution: DisplaySize(width: 3840, height: 2160), outputTimingRefreshHz: 120, bitDepth: 10, encoding: .rgb,
+      range: .full, chroma: .unknown, hdrMode: hdr)
+  }
 
   private func bridgeDictionary(
     refreshHz: Double = 120, bitDepth: Int = 10, encoding: String = "rgb", range: String = "full", chroma: String = "none", hdrMode: String = "sdr",
@@ -238,6 +473,24 @@ private final class FakeDisplayModeBackend: DisplayModeBackend, @unchecked Senda
     setCalls.append(modeID)
     if updateCurrentAfterSet { current = listResult.items.first { $0.id == modeID } }
     return setResult
+  }
+}
+
+private final class FakeHDRPreferenceBackend: HDRPreferenceBackend, @unchecked Sendable {
+  var available = true
+  var reading: Bool?  // nil = the read fails (bridge error), not "no value yet"
+  var setSucceeds = true
+  var setCalls: [Bool] = []
+
+  init(reading: Bool?) { self.reading = reading }
+
+  var isAvailable: Bool { available }
+
+  func preferHDRModes(_ displayID: CGDirectDisplayID) -> Bool? { reading }
+
+  func setPreferHDRModes(_ displayID: CGDirectDisplayID, enabled: Bool) -> Bool {
+    setCalls.append(enabled)
+    return setSucceeds
   }
 }
 

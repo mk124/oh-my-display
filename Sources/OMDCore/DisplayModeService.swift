@@ -4,15 +4,18 @@ import OMDQuartzBridge
 
 struct DisplayModeService: Sendable {
   var backend: DisplayModeBackend
+  var hdrPreference: HDRPreferenceBackend
   var resolver: DisplayResolving
 
   init() {
     self.backend = LiveDisplayModeBackend()
+    self.hdrPreference = LiveHDRPreferenceBackend()
     self.resolver = DisplayResolver()
   }
 
-  init(backend: DisplayModeBackend, resolver: DisplayResolving = DisplayResolver()) {
+  init(backend: DisplayModeBackend, hdrPreference: HDRPreferenceBackend = UnavailableHDRPreferenceBackend(), resolver: DisplayResolving = DisplayResolver()) {
     self.backend = backend
+    self.hdrPreference = hdrPreference
     self.resolver = resolver
   }
 
@@ -21,6 +24,16 @@ struct DisplayModeService: Sendable {
     return backend.displayModes(resolved.displayID)
   }
 
+  // Postcondition of an applied result: link mode == target AND the system HDR preference
+  // (the System Settings switch) == the target's HDR category — except on degraded paths,
+  // where the preference could not be synced and the reason says so.
+  //
+  // The preference write and the mode set are issued back-to-back: flipping the preference
+  // makes WindowServer renegotiate the link to a per-display default of its own choosing,
+  // and a set request that arrives before the renegotiation executes is merged into it —
+  // one link retrain straight to the target (single blackout). A set that arrives late
+  // still lands the target, just as a second retrain. Waiting or reading back between the
+  // two calls only delays the set and forfeits the merge.
   func setDisplayMode(_ selector: DisplaySelector, modeID: DisplayModeID) throws -> DisplaySetResult {
     let resolved: ResolvedDisplay
     do { resolved = try resolver.resolve(selector) } catch let error as DisplayControlError {
@@ -32,17 +45,51 @@ struct DisplayModeService: Sendable {
     guard list.readability != .unreadable else { return .backendUnavailable(list.reason ?? "Display mode backend is unavailable") }
 
     let matches = list.items.filter { $0.id == modeID }
-    guard matches.count == 1 else {
+    guard matches.count == 1, let target = matches.first else {
       return .blocked(matches.isEmpty ? "Display mode id is not available for this display" : "Display mode id matched multiple current modes")
     }
 
-    if backend.currentDisplayMode(resolved.displayID)?.id == modeID { return .noOp("Requested display mode is already current") }
+    var degraded: [String] = []
+    var flipTarget: Bool?  // non-nil = the system HDR preference must flip to this value
+    if let targetPrefersHDR = target.hdrMode.prefersHDR {
+      if !hdrPreference.isAvailable {
+        degraded.append("HDR preference bridge is unavailable; the system HDR switch was not synced")
+      } else if let reading = hdrPreference.preferHDRModes(resolved.displayID) {
+        if reading != targetPrefersHDR { flipTarget = targetPrefersHDR }
+      } else {
+        degraded.append("HDR preference is unreadable; the system HDR switch was not synced")
+      }
+    }
 
+    // No-op guard, prefer-aware: a link-level match must not mask a preference mismatch
+    // (the half-HDR state), or re-selecting the current mode could never repair it.
+    if backend.currentDisplayMode(resolved.displayID)?.id == modeID, flipTarget == nil {
+      return .noOp("Requested display mode is already current")
+    }
+
+    var attemptedMutation = false
+    if let flipTarget {
+      attemptedMutation = true
+      if !hdrPreference.setPreferHDRModes(resolved.displayID, enabled: flipTarget) {
+        degraded.append("HDR preference write failed; the system HDR switch was not synced")
+      }
+    }
+
+    let note = degraded.isEmpty ? "" : " (degraded: \(degraded.joined(separator: "; ")))"
+
+    // After a preference flip the set is mandatory even when the link already matches the
+    // target — the renegotiation moves the link, and the set is what pins it back.
     let setterResult = backend.setDisplayMode(resolved.displayID, modeID: modeID)
-    guard setterResult.status == .applied else { return setterResult }
-
-    guard backend.currentDisplayMode(resolved.displayID)?.id == modeID else { return .readbackMismatch("Display mode readback did not match requested mode") }
-    return .applied("Display mode applied")
+    guard setterResult.status == .applied else {
+      var result = setterResult
+      result.attemptedMutation = result.attemptedMutation || attemptedMutation
+      if !note.isEmpty { result.reason = (result.reason ?? "Display mode setter failed") + note }
+      return result
+    }
+    guard backend.currentDisplayMode(resolved.displayID)?.id == modeID else {
+      return .readbackMismatch("Display mode readback did not match requested mode\(note)")
+    }
+    return .applied("Display mode applied\(note)")
   }
 
   func currentDisplayMode(_ resolved: ResolvedDisplay) -> DisplayMode? { backend.currentDisplayMode(resolved.displayID) }
