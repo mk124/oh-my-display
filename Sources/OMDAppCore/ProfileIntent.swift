@@ -45,7 +45,7 @@ extension OMDAppCore {
         axisSatisfied(state.isVRR, lockedTo: displayMode.isVRR)
       else { return false }
     }
-    return axisSatisfied(state.ditheringEnabled, lockedTo: intent.ditheringEnabled) && axisSatisfied(state.iccProfileURL, lockedTo: intent.iccProfileURL)
+    return axisSatisfied(state.ditheringEnabled, lockedTo: intent.ditheringEnabled) && iccAxisSatisfied(state.iccProfileURL, lockedTo: intent.iccProfileURL)
   }
 
   func apply(_ intent: DisplayProfileIntent, to display: DisplaySelector) throws -> ProfileApplyResult {
@@ -140,4 +140,13 @@ private func axisSatisfied<Value: Equatable>(_ axis: DisplayAxis<Value>, lockedT
 private func axisSatisfied(_ axis: DisplayAxis<Double>, near expected: Double?) -> Bool {
   guard let expected, let current = readableValue(axis) else { return true }
   return approximatelyEqual(current, expected)
+}
+
+// ICC compares by file identity, not raw URL ==: the locked intent URL and the
+// ColorSync device-info URL can name the same file in different forms. A raw
+// mismatch would make a conformant display look drifted, and the ICC-notification
+// echo would loop that into repeated corrections until give-up disables the profile.
+private func iccAxisSatisfied(_ axis: DisplayAxis<URL>, lockedTo expected: URL?) -> Bool {
+  guard let expected, let current = readableValue(axis) else { return true }
+  return ICCProfileIdentity.sameFile(current, expected)
 }

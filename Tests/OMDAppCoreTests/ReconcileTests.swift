@@ -481,6 +481,28 @@ final class ReconcileTests: XCTestCase {
     }
   }
 
+  // The locked ICC and the live ColorSync URL can name the same file in different
+  // forms; intentSatisfied must treat that as satisfied, not drive a correction.
+  func testReconcileTreatsSameFileICCUnderDifferentURLFormAsSatisfied() throws {
+    let fixture = try AppCoreFixture()
+    var state = fixture.fake.states[fixture.display.selector]!
+    state.iccProfileURL = .readable(URL(fileURLWithPath: "/private/tmp/x.icc"))
+    fixture.fake.states[fixture.display.selector] = state
+    _ = try fixture.core.addProfile(for: fixture.display.selector)
+    state.iccProfileURL = .readable(URL(fileURLWithPath: "/private/tmp/sub/../x.icc"))
+    fixture.fake.states[fixture.display.selector] = state
+    fixture.fake.clearCalls()
+
+    let results = try fixture.core.reconcile(trigger: .displayChange)
+
+    XCTAssertTrue(fixture.fake.setICCCalls.isEmpty)
+    guard case .applied(_, let result)? = results.first?.outcome else {
+      XCTFail("Expected applied outcome")
+      return
+    }
+    XCTAssertTrue(result.operations.allSatisfy { !$0.result.attemptedMutation })
+  }
+
   // Simulates an external change: the display drifts off the profile's resolution.
   private func driftResolution(_ fixture: AppCoreFixture) {
     var state = fixture.fake.states[fixture.display.selector]!

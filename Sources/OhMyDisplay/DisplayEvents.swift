@@ -5,18 +5,27 @@ import OMDAppCore
 extension AppDelegate {
   func installEventObservers() {
     NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(workspaceDidWake(_:)), name: NSWorkspace.didWakeNotification, object: nil)
+    NotificationCenter.default.addObserver(
+      self, selector: #selector(screenParametersDidChange(_:)),
+      name: NSApplication.didChangeScreenParametersNotification, object: nil)
     CGDisplayRegisterReconfigurationCallback(displayReconfigurationCallback, Unmanaged.passUnretained(self).toOpaque())
     installHeartbeat()
   }
 
   func uninstallEventObservers() {
     NSWorkspace.shared.notificationCenter.removeObserver(self)
+    NotificationCenter.default.removeObserver(self, name: NSApplication.didChangeScreenParametersNotification, object: nil)
     CGDisplayRemoveReconfigurationCallback(displayReconfigurationCallback, Unmanaged.passUnretained(self).toOpaque())
     heartbeatTimer?.invalidate()
     heartbeatTimer = nil
   }
 
   @objc func workspaceDidWake(_ notification: Notification) { check(trigger: .wake) }
+
+  // External ICC changes fire no CGDisplay callback but do post this AppKit
+  // notification (~0.2s) — the event-level trigger for ICC drift. Reuses
+  // .displayChange: a color-space change is a display reconfiguration, steady-state.
+  @objc func screenParametersDidChange(_ notification: Notification) { check(trigger: .displayChange) }
 
   // Eventless drift (e.g. a link renegotiated to YCbCr) fires no callback on any
   // layer, so a slow heartbeat is the detection of last resort. Scheduled in the
