@@ -7,6 +7,7 @@ import OMDAppCore
   var isChecking = false
   var riskyMutationDepth = 0
   var safeMutationDepth = 0
+  var heartbeatTimer: Timer?
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     do {
@@ -28,7 +29,9 @@ import OMDAppCore
     let button = statusItem.button
     button?.image = NSImage(systemSymbolName: "display", accessibilityDescription: "Oh My Display")
     button?.imagePosition = .imageOnly
-    statusItem.menu = NSMenu()
+    let menu = NSMenu()
+    menu.delegate = self
+    statusItem.menu = menu
   }
 
   func requireCore() throws -> OMDAppCore {

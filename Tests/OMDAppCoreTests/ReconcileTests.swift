@@ -412,6 +412,75 @@ final class ReconcileTests: XCTestCase {
     XCTAssertEqual(attempts(fixture), 1)
   }
 
+  func testHasEnforceableProfileIsFalseForEmptyDocument() throws {
+    let fixture = try AppCoreFixture()
+
+    XCTAssertFalse(fixture.core.hasEnforceableProfile)
+  }
+
+  func testHasEnforceableProfileIsFalseWhenCurrentOff() throws {
+    let fixture = try AppCoreFixture()
+    _ = try fixture.core.addProfile(for: fixture.display.selector)
+    try fixture.core.setCurrentOff(for: fixture.display.selector)
+
+    XCTAssertFalse(fixture.core.hasEnforceableProfile)
+  }
+
+  func testHasEnforceableProfileIsFalseForWeakBinding() throws {
+    let fixture = try AppCoreFixture(selector: DisplaySelector("cg:1"))
+    _ = try fixture.core.addProfile(for: fixture.display.selector)
+
+    XCTAssertFalse(fixture.core.hasEnforceableProfile)
+  }
+
+  func testHasEnforceableProfileIsTrueForStrongBoundCurrentProfile() throws {
+    let fixture = try AppCoreFixture()
+    _ = try fixture.core.addProfile(for: fixture.display.selector)
+
+    XCTAssertTrue(fixture.core.hasEnforceableProfile)
+  }
+
+  func testHasEnforceableProfileIsTrueWithMixedRecords() throws {
+    let fixture = try AppCoreFixture()
+    _ = try fixture.core.addProfile(for: fixture.display.selector)
+    try fixture.core.setCurrentOff(for: fixture.display.selector)
+    let strongTwo = DisplayTarget(selector: DisplaySelector("uuid:two"), displayID: 2, label: "Two", isMain: false, isBuiltin: false)
+    fixture.core.document.displays.append(
+      DisplayProfileRecord(binding: DisplayBinding(target: strongTwo), currentProfileID: UUID()))
+
+    XCTAssertTrue(fixture.core.hasEnforceableProfile)
+  }
+
+  // Guards the `!= .startup` derivation: the new triggers must stay steady-state
+  // so the HDR clamp keeps applying to them.
+  func testMenuOpenAndHeartbeatTriggersAreSteadyState() {
+    XCTAssertTrue(DisplayEventTrigger.menuOpen.isSteadyState)
+    XCTAssertTrue(DisplayEventTrigger.heartbeat.isSteadyState)
+  }
+
+  // Guards the integration, not just the property: reconcile driven by the new
+  // triggers must run the HDR clamp end to end.
+  func testMenuOpenAndHeartbeatReconcileSkipDisplayModeWhenHDRModeMismatches() throws {
+    for trigger in [DisplayEventTrigger.menuOpen, .heartbeat] {
+      let fixture = try AppCoreFixture()
+      _ = try fixture.core.addProfile(for: fixture.display.selector)
+      driftResolution(fixture)
+      var state = fixture.fake.states[fixture.display.selector]!
+      state.hdrMode = .readable(.sdr)
+      fixture.fake.states[fixture.display.selector] = state
+      fixture.fake.clearCalls()
+
+      let results = try fixture.core.reconcile(trigger: trigger)
+
+      guard case .applied(_, let result)? = results.first?.outcome else {
+        XCTFail("Expected applied reconcile outcome for \(trigger)")
+        continue
+      }
+      XCTAssertTrue(result.succeeded, "\(trigger)")
+      XCTAssertTrue(fixture.fake.setDisplayModeCalls.isEmpty, "\(trigger)")
+    }
+  }
+
   // Simulates an external change: the display drifts off the profile's resolution.
   private func driftResolution(_ fixture: AppCoreFixture) {
     var state = fixture.fake.states[fixture.display.selector]!

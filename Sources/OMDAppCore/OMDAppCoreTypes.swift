@@ -5,6 +5,8 @@ package enum DisplayEventTrigger: String, Codable, Equatable, Sendable {
   case startup
   case wake
   case displayChange
+  case menuOpen
+  case heartbeat
 
   var isSteadyState: Bool { self != .startup }
 }

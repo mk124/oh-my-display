@@ -3,11 +3,11 @@ import OMDAppCore
 import OMDCore
 
 extension AppDelegate {
+  // Repopulates the single stable menu instance in place; swapping instances
+  // would misbehave when triggered from menuNeedsUpdate mid-open.
   func rebuildMenu() {
-    let menu = NSMenu()
-    defer {
-      statusItem.menu = menu
-    }
+    guard let menu = statusItem.menu else { return }
+    menu.removeAllItems()
 
     guard let core else {
       menu.addItem(disabledItem("AppCore unavailable"))
@@ -260,4 +260,10 @@ extension AppDelegate {
     item.target = NSApp
     return item
   }
+}
+
+extension AppDelegate: NSMenuDelegate {
+  // Opening the status menu is a verification moment: reconcile against fresh
+  // reads (correcting any eventless drift) and repopulate before display.
+  func menuNeedsUpdate(_ menu: NSMenu) { check(trigger: .menuOpen) }
 }

@@ -14,6 +14,12 @@ extension OMDAppCore {
     document.displays.append(record)
   }
 
+  // The heartbeat's pure-memory gate: detection only matters while some display
+  // keeps a strong-bound current profile; everything else has nothing to enforce.
+  package var hasEnforceableProfile: Bool {
+    document.displays.contains { $0.currentProfileID != nil && $0.binding.isStrong }
+  }
+
   func record(for display: DisplaySelector) -> DisplayProfileRecord? { document.displays.first { $0.binding.selector == display } }
 
   func recordIndex(for display: DisplaySelector) -> Int? { document.displays.firstIndex { $0.binding.selector == display } }

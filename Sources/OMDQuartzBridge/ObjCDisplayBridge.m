@@ -60,6 +60,12 @@ static BOOL OMDQuartzSendBool(id object, NSString *selectorName) {
     return ((BOOL (*)(id, SEL))objc_msgSend)(object, OMDQuartzSel(selectorName));
 }
 
+// A dedicated void sender: routing a void method through the id-returning
+// variant would have ARC retain garbage left in x0.
+static void OMDQuartzSendVoid(id object, NSString *selectorName) {
+    ((void (*)(id, SEL))objc_msgSend)(object, OMDQuartzSel(selectorName));
+}
+
 static void OMDQuartzSendVoidObject(id object, NSString *selectorName, id argument) {
     ((void (*)(id, SEL, id))objc_msgSend)(object, OMDQuartzSel(selectorName), argument);
 }
@@ -77,6 +83,13 @@ static NSArray *OMDQuartzDisplays(void) {
 static id OMDQuartzDisplayForID(CGDirectDisplayID displayID) {
     for (id display in OMDQuartzDisplays() ?: @[]) {
         if (OMDQuartzResponds(display, @"displayId") && OMDQuartzSendUInt32(display, @"displayId") == displayID) {
+            // CADisplay state is a process-local cache that eventless link
+            // renegotiations (e.g. RGB -> YCbCr) never refresh. Pull from
+            // WindowServer on every resolve (~0.2ms) so reads, no-op guards,
+            // and reconcile all see reality.
+            if (OMDQuartzResponds(display, @"update")) {
+                OMDQuartzSendVoid(display, @"update");
+            }
             return display;
         }
     }
