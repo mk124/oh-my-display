@@ -10,6 +10,10 @@ rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp .build/release/OhMyDisplay "$app/Contents/MacOS/"
 cp Packaging/Info.plist "$app/Contents/"
+# Stamp the build with the commit it came from (suffixed -dirty if the tree has uncommitted changes).
+build=$(git rev-parse --short HEAD)
+git diff --quiet HEAD || build="$build-dirty"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build" "$app/Contents/Info.plist"
 Packaging/make-icon.sh "$app/Contents/Resources/AppIcon.icns"
 codesign --force --sign - "$app"
 
