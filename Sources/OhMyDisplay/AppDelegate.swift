@@ -27,11 +27,41 @@ import OMDAppCore
 
   func configureStatusItem() {
     let button = statusItem.button
-    button?.image = NSImage(systemSymbolName: "display", accessibilityDescription: "Oh My Display")
+    button?.image = Self.menuBarIcon()
     button?.imagePosition = .imageOnly
     let menu = NSMenu()
     menu.delegate = self
     statusItem.menu = menu
+  }
+
+  // A code-drawn single-colour template glyph echoing the logo's monitor: a stroked rounded screen
+  // over a stand bar. viewBox 100 × 83 with the ink pre-centered, so the status button — which
+  // centers the whole image — places it dead-center, free of the SF Symbol baseline offset.
+  private static func menuBarIcon() -> NSImage {
+    let image = NSImage(size: NSSize(width: 15 * 100.0 / 83.0, height: 15), flipped: false) { rect in
+      guard let c = NSGraphicsContext.current?.cgContext else { return false }
+      c.scaleBy(x: rect.width / 100, y: rect.height / 83)
+      c.setLineJoin(.round)
+      let ink = NSColor.black.cgColor
+      // outline 88×58 with an 8 border → interior hole 80×50 = 16:10
+      let screen = CGPath(roundedRect: CGRect(x: 6, y: 19, width: 88, height: 58),
+        cornerWidth: 9, cornerHeight: 9, transform: nil)
+      c.setFillColor(ink.copy(alpha: 0.18)!)  // soft glow inside the screen (renders faint on the bar)
+      c.addPath(screen)
+      c.fillPath()
+      c.setStrokeColor(ink)
+      c.setLineWidth(8)
+      c.addPath(screen)
+      c.strokePath()
+      let stand = CGPath(roundedRect: CGRect(x: 29, y: 2, width: 42, height: 7),
+        cornerWidth: 3, cornerHeight: 3, transform: nil)
+      c.setFillColor(ink)
+      c.addPath(stand)
+      c.fillPath()
+      return true
+    }
+    image.isTemplate = true
+    return image
   }
 
   func requireCore() throws -> OMDAppCore {
