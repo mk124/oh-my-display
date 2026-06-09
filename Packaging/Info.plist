@@ -22,6 +22,8 @@
   <string>14.0</string>
   <key>LSUIElement</key>
   <true/>
+  <key>NSHumanReadableCopyright</key>
+  <string>Copyright © 2026 Oh My Display contributors</string>
   <key>NSPrincipalClass</key>
   <string>NSApplication</string>
 </dict>

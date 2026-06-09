@@ -108,6 +108,14 @@ extension AppDelegate {
     } catch { showError(error) }
   }
 
+  @objc func showAbout(_ sender: NSMenuItem) {
+    let credits = NSAttributedString(
+      string: "View on GitHub",
+      attributes: [.link: URL(string: "https://github.com/mk124/oh-my-display")!])
+    NSApp.activate(ignoringOtherApps: true)
+    NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
+  }
+
   func runAction(_ sender: NSMenuItem, _ action: (OMDAppCore, DisplayPayload) throws -> Void) {
     guard let payload = sender.representedObject as? DisplayPayload else { return }
     do {

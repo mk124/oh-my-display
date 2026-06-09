@@ -11,8 +11,7 @@ extension AppDelegate {
 
     guard let core else {
       menu.addItem(disabledItem("AppCore unavailable"))
-      menu.addItem(.separator())
-      menu.addItem(quitItem())
+      appendFooter(to: menu)
       return
     }
 
@@ -30,8 +29,7 @@ extension AppDelegate {
       menu.addItem(disabledItem(String(describing: error)))
     }
 
-    menu.addItem(.separator())
-    menu.addItem(quitItem())
+    appendFooter(to: menu)
   }
 
   func displayMenuItem(_ display: DisplayMenuState) -> NSMenuItem {
@@ -249,6 +247,22 @@ extension AppDelegate {
   func disabledItem(_ title: String) -> NSMenuItem {
     let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
     item.isEnabled = false
+    return item
+  }
+
+  // The shared menu tail — About then Quit — appended in every menu state.
+  func appendFooter(to menu: NSMenu) {
+    menu.addItem(.separator())
+    menu.addItem(aboutItem())
+    menu.addItem(quitItem())
+  }
+
+  func aboutItem() -> NSMenuItem {
+    let item = NSMenuItem(
+      title: "About OhMyDisplay",
+      action: #selector(showAbout(_:)),
+      keyEquivalent: "")
+    item.target = self
     return item
   }
 
