@@ -82,9 +82,14 @@ struct LiveResolutionModeBackend: ResolutionModeBackend {
     return modeSetter.setResolutionMode(displayID, mode: modes[index])
   }
 
-  private static func copyAllModes(_ displayID: CGDirectDisplayID) -> [CGDisplayMode] {
+  // CGDisplayCopyAllDisplayModes returns the raw driver table -- including valid-but-unsafe modes
+  // (no kDisplayModeSafeFlag) that CGCompleteDisplayConfiguration rejects with kCGErrorIllegalArgument.
+  // desktopUsableOnly (the default) keeps only the modes macOS itself offers for the desktop; pass
+  // false only to inspect the unfiltered table, never to populate a user-facing list.
+  private static func copyAllModes(_ displayID: CGDirectDisplayID, desktopUsableOnly: Bool = true) -> [CGDisplayMode] {
     let options: [CFString: Any] = [kCGDisplayShowDuplicateLowResolutionModes: true]
-    return CGDisplayCopyAllDisplayModes(displayID, options as CFDictionary) as? [CGDisplayMode] ?? []
+    let all = CGDisplayCopyAllDisplayModes(displayID, options as CFDictionary) as? [CGDisplayMode] ?? []
+    return desktopUsableOnly ? all.filter { $0.isUsableForDesktopGUI() } : all
   }
 
   private static func publicModes(from modes: [CGDisplayMode]) -> [ResolutionMode] {
